@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.3
+
+- Times, states and counts never wrap; the title in front is cut instead. Smaller text from 115 columns down.
+
 ## 0.8.2
 
 - Text gets smaller below 90 columns, before the layout changes; titles are cut with «…» instead of wrapping.

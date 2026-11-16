@@ -132,14 +132,19 @@ export async function renderPane(
         <Box flexGrow={1} flexShrink={1} minWidth={0}>
           {link(`chat:${c.id}`, openChat(c), p ? p.rest : c.title)}
         </Box>
-        {mini ? null : c.isRunning ? (
-          <Text color={C.green} size={fsMeta}>{t.working}</Text>
-        ) : c.isWaiting ? (
-          <Text color={C.amber} size={fsMeta}>{t.waiting}  {age(c.last, now, lang)}</Text>
-        ) : c.isNew ? (
-          <Text color={C.blue} size={fsMeta}>{t.isNew}  {age(c.last, now, lang)}</Text>
-        ) : (
-          <Text color={C.gray} size={fsMeta}>{age(c.last, now, lang)}</Text>
+        {/* Time and state never wrap and never shrink: the title in front of them is cut instead. */}
+        {!mini && (
+          <Box flexShrink={0}>
+            {c.isRunning ? (
+              <Text color={C.green} size={fsMeta} wrap="truncate-end">{t.working}</Text>
+            ) : c.isWaiting ? (
+              <Text color={C.amber} size={fsMeta} wrap="truncate-end">{t.waiting}  {age(c.last, now, lang)}</Text>
+            ) : c.isNew ? (
+              <Text color={C.blue} size={fsMeta} wrap="truncate-end">{t.isNew}  {age(c.last, now, lang)}</Text>
+            ) : (
+              <Text color={C.gray} size={fsMeta} wrap="truncate-end">{age(c.last, now, lang)}</Text>
+            )}
+          </Box>
         )}
       </Box>
     )
@@ -194,13 +199,15 @@ export async function renderPane(
           <Box backgroundColor={isOpen ? C.badgeOpen : C.badge} paddingX={1}>
             <Text mono weight="semibold" color={isOpen ? C.blue : undefined}>{a.id}</Text>
           </Box>
-          <Box flexGrow={1}>
+          <Box flexGrow={1} flexShrink={1} minWidth={0}>
             {link(`area:${a.id}`, toggle(a.id), a.name)}
           </Box>
           {!mini && running > 0 && chip(t.countWorking(running), C.green, C.greenBg)}
           {!mini && waitingN > 0 && chip(t.countWaiting(waitingN), C.amber, C.amberBg)}
           {!mini && newN > 0 && chip(t.countNew(newN), C.blue, C.newBg)}
-          <Text color={C.gray} size={fsMeta}>{compact ? list.length : t.chats(list.length)}</Text>
+          <Box flexShrink={0}>
+            <Text color={C.gray} size={fsMeta} wrap="truncate-end">{compact ? list.length : t.chats(list.length)}</Text>
+          </Box>
           <Text color={C.gray}>{isOpen ? '⌄' : '›'}</Text>
         </Box>
         {isOpen && (
@@ -215,7 +222,7 @@ export async function renderPane(
                   <Box flexDirection="row" alignItems="center" gap={1} paddingY={py}>
                     {icon(subOpen ? 'open' : 'folder', subOpen ? C.blue : C.gray, 20)}
                     <Text mono color={C.gray} size={fsMeta}>{s.id}</Text>
-                    <Box flexGrow={1}>
+                    <Box flexGrow={1} flexShrink={1} minWidth={0}>
                       {link(`sub:${s.id}`, toggle(s.id), s.name)}
                     </Box>
                     <Text color={C.gray} size={fsMeta}>{subChats.length}</Text>

@@ -520,7 +520,7 @@ export type PaneSize = 'standard' | 'small' | 'mini'
 export const SMALL_BELOW = 60
 export const MINI_BELOW = 40
 // The text gets smaller well before the layout changes, so titles do not wrap.
-export const SMALL_TEXT_BELOW = 90
+export const SMALL_TEXT_BELOW = 115
 export function paneSize(cols: number): PaneSize {
   return cols < MINI_BELOW ? 'mini' : cols < SMALL_BELOW ? 'small' : 'standard'
 }
