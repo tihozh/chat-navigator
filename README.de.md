@@ -24,6 +24,8 @@ eines Projekts als nummerierten Baum in einem Panel neben dem Chat und hält die
 - Öffnet sich in jedem Chat des Projekts von selbst, nicht in geplanten Läufen und nicht dort, wo du es
   geschlossen hast. Mehrere Projekte gehen nebeneinander, jedes mit eigener Einstellungsdatei.
 - Oberfläche auf Englisch oder Deutsch.
+- Passt sich der Breite des Panels in drei Stufen an: Standard, klein (kleinere Schrift, kürzere Balken) und
+  mini (Punkt und Titel je Chat, Zeichen statt Wörter im Kopf).
 
 ![Statusleiste mit dem laufenden Krebs](docs/statusbar.svg)
 

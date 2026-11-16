@@ -3,7 +3,7 @@ import type { EngineInterface, RenderElement, RenderInput } from 'claude-code'
 import type { Area, Chat } from '../types'
 import type { Project } from './config'
 import { findingText, locale, texts } from './i18n'
-import { ALL_FEATURES, age, areaOf, cleanupCandidates, isSteering, nextNumber, parse, searchChats, weekBar, weekSummary, withPlannedTitles } from './logic'
+import { ALL_FEATURES, age, areaOf, cleanupCandidates, isSteering, nextNumber, paneSize, parse, searchChats, weekBar, weekSummary, withPlannedTitles } from './logic'
 import { getNote, getOpen, getQuery, getSnapshot, markSeen, setNote, setOpen, setQuery } from './state'
 
 // The pane: this chat, recently active, areas with sub-folders, to clarify.
@@ -51,15 +51,15 @@ export async function renderPane(
   const features = snap.features ?? ALL_FEATURES
   const t = texts(lang)
   const now = Date.now()
-  // Three widths: wide as it is; below 90 columns smaller text and shorter bars;
-  // below 70 a compact list without borders, little spacing and no bars.
-  const cols = e.props.bodyColumns ?? 120
-  const compact = cols < 70
-  const narrow = cols < 90
-  const py = compact ? 0 : 1
+  // Three stages by width (see `paneSize`): standard, small, mini.
+  const size = paneSize(e.props.bodyColumns ?? 120)
+  const mini = size === 'mini'
+  const narrow = size !== 'standard'
+  const compact = mini
+  const py = narrow ? 0 : 1
   const fs = narrow ? 'footnote' : 'body'
   const fsMeta = narrow ? 'caption' : 'body'
-  const barWidth = compact ? 0 : narrow ? 6 : 12
+  const barWidth = mini ? 0 : narrow ? 6 : 12
 
   // A pressable text whose size follows the width (a Button has no size of its own, its Text child has).
   const link = (key: string, onPress: () => unknown, text: string) => (
@@ -125,11 +125,11 @@ export async function renderPane(
     return (
       <Box key={`r:${c.id}:${indent}`} flexDirection="row" alignItems="center" paddingLeft={indent} paddingY={py} gap={1} backgroundColor={c.id === selfId ? C.cardOpen : undefined}>
         <Text color={dotColor}>{steer ? '◆ ' : '● '}</Text>
-        {showNum && p && <Text mono color={C.gray} size={fsMeta}>{p.num}</Text>}
-        <Box flexGrow={1}>
+        {showNum && !mini && p && <Text mono color={C.gray} size={fsMeta}>{p.num}</Text>}
+        <Box flexGrow={1} flexShrink={1} minWidth={0}>
           {link(`chat:${c.id}`, openChat(c), p ? p.rest : c.title)}
         </Box>
-        {c.isRunning ? (
+        {mini ? null : c.isRunning ? (
           <Text color={C.green} size={fsMeta}>{t.working}</Text>
         ) : c.isWaiting ? (
           <Text color={C.amber} size={fsMeta}>{t.waiting}  {age(c.last, now, lang)}</Text>
@@ -194,9 +194,9 @@ export async function renderPane(
           <Box flexGrow={1}>
             {link(`area:${a.id}`, toggle(a.id), a.name)}
           </Box>
-          {running > 0 && chip(t.countWorking(running), C.green, C.greenBg)}
-          {waitingN > 0 && chip(t.countWaiting(waitingN), C.amber, C.amberBg)}
-          {newN > 0 && chip(t.countNew(newN), C.blue, C.newBg)}
+          {!mini && running > 0 && chip(t.countWorking(running), C.green, C.greenBg)}
+          {!mini && waitingN > 0 && chip(t.countWaiting(waitingN), C.amber, C.amberBg)}
+          {!mini && newN > 0 && chip(t.countNew(newN), C.blue, C.newBg)}
           <Text color={C.gray} size={fsMeta}>{compact ? list.length : t.chats(list.length)}</Text>
           <Text color={C.gray}>{isOpen ? '⌄' : '›'}</Text>
         </Box>
@@ -244,17 +244,17 @@ export async function renderPane(
         </Box>
         {features.week && (
           <Box marginRight={1}>
-            {link('week', toggle('__week'), t.week)}
+            {link('week', toggle('__week'), mini ? '📊' : t.week)}
           </Box>
         )}
         {features.cleanup && (
           <Box marginRight={1}>
-            {link('cleanup', toggle('__cleanup'), candidates.length > 0 ? t.cleanup(candidates.length) : t.cleanupLabel)}
+            {link('cleanup', toggle('__cleanup'), mini ? (candidates.length > 0 ? `🧹 ${candidates.length}` : '🧹') : candidates.length > 0 ? t.cleanup(candidates.length) : t.cleanupLabel)}
           </Box>
         )}
         {snap.findings.length > 0 && (
           <Box backgroundColor={C.amberBg} paddingX={1} marginRight={1}>
-            {link('findings', toggle('__findings'), t.toClarifyCount(snap.findings.length))}
+            {link('findings', toggle('__findings'), mini ? `⚠ ${snap.findings.length}` : t.toClarifyCount(snap.findings.length))}
           </Box>
         )}
         <Button key="refresh" plain onPress={deps.refresh} label="↻" />
@@ -266,7 +266,7 @@ export async function renderPane(
 
       {features.search && (
         <Box marginBottom={1}>
-          <Input key="search" placeholder={t.searchPlaceholder} submitLabel={t.searchSubmit} value={rawQuery} onInput={v => void setQuery($, v)} onSubmit={v => void setQuery($, v)} />
+          <Input key="search" placeholder={mini ? t.searchShort : t.searchPlaceholder} submitLabel={t.searchSubmit} value={rawQuery} onInput={v => void setQuery($, v)} onSubmit={v => void setQuery($, v)} />
         </Box>
       )}
 
@@ -323,7 +323,7 @@ export async function renderPane(
           <Text weight="semibold">{t.cleanupTitle(candidates.length, cfg.settings.staleDays)}</Text>
           {candidates.slice(0, 20).map(c => chatRow(c, 0))}
           {candidates.length > 20 && <Text color={C.gray} size={fsMeta}>{t.andMore(candidates.length - 20)}</Text>}
-          <Text color={C.gray} size={fsMeta}>{t.cleanupHint}</Text>
+          {!mini && <Text color={C.gray} size={fsMeta}>{t.cleanupHint}</Text>}
           <Box marginTop={1}>
             <Button key="cleanup-go" onPress={archiveAll} label={t.cleanupButton(candidates.length)} />
           </Box>
@@ -407,7 +407,7 @@ export async function renderPane(
         </Box>
       )}
 
-      <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={1}>
+      {!mini && <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={1}>
         <Text color={C.green} size={fsMeta}>● {t.working}</Text>
         <Text color={C.amber} size={fsMeta}>● {t.waitingForYou}</Text>
         <Text color={C.blue} size={fsMeta}>● {t.isNew}</Text>
@@ -416,7 +416,7 @@ export async function renderPane(
         <Text color={C.gray} size={fsMeta}>
           {t.updated(snap.at ? new Date(snap.at).toLocaleTimeString(locale(lang), { hour: '2-digit', minute: '2-digit' }) : '–')}
         </Text>
-      </Box>
+      </Box>}
     </Box>
   )
 }

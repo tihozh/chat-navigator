@@ -511,6 +511,18 @@ export function cleanupCandidates(cfg: Config, chats: Chat[], selfId: string, no
     .sort((a, b) => a.last.localeCompare(b.last))
 }
 
+// ---------- Pane width ----------
+
+// Three stages of the pane, by its width in columns: standard as designed; small with smaller text,
+// shorter bars and tighter spacing; mini with only a dot and the title per chat, icons in the header,
+// no bars and no legend.
+export type PaneSize = 'standard' | 'small' | 'mini'
+export const SMALL_BELOW = 90
+export const MINI_BELOW = 55
+export function paneSize(cols: number): PaneSize {
+  return cols < MINI_BELOW ? 'mini' : cols < SMALL_BELOW ? 'small' : 'standard'
+}
+
 // ---------- Status bar ----------
 
 // The status bar only takes text: colour comes from coloured characters.

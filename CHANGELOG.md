@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0
+
+- Three width stages: standard (90 columns and more), small (55–89: smaller text, short bars, tight spacing) and mini (below 55: dot and title per chat, icons in the header, no bars, no legend).
+
 ## 0.7.1
 
 - Narrow panes: smaller text below 90 columns, shorter bars, no bars below 70; header buttons wrap; review rows keep their columns.

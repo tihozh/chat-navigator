@@ -17,6 +17,7 @@ import {
   normalizeGlobal,
   normalizePath,
   parse,
+  paneSize,
   pickProject,
   planGuard,
   savedResultPath,
@@ -473,4 +474,12 @@ test('the archive beats the number, and archived chats are not reported in the w
   const c = chat('a', '02-01 · Done', { group: '01 Planning' })
   expect(areaOf(cfg, c)).toBe('99')
   expect(planGuard(cfg, [c], GROUPS, NOW).findings).toEqual([])
+})
+
+test('paneSize: standard, small and mini by width', async () => {
+  expect(paneSize(120)).toBe('standard')
+  expect(paneSize(90)).toBe('standard')
+  expect(paneSize(89)).toBe('small')
+  expect(paneSize(55)).toBe('small')
+  expect(paneSize(54)).toBe('mini')
 })

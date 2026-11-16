@@ -56,6 +56,7 @@ const en = {
   // Search, weekly review, cleanup
   searchPlaceholder: 'Search chats by title or number',
   searchSubmit: 'search',
+  searchShort: 'Search…',
   results: (n: number) => (n === 1 ? '1 result' : `${n} results`),
   noResults: 'No chat matches.',
   week: 'Review',
@@ -205,6 +206,7 @@ const de: Texts = {
 
   searchPlaceholder: 'Chats nach Titel oder Nummer suchen',
   searchSubmit: 'suchen',
+  searchShort: 'Suchen…',
   results: n => (n === 1 ? '1 Treffer' : `${n} Treffer`),
   noResults: 'Kein Chat passt.',
   week: 'Rückblick',
