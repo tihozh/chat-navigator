@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2
+
+- For the plugin directory: the current chat is read with a direct call at each place instead of a helper.
+
 ## 0.9.1
 
 - For the plugin directory: the call that reads the current chat has a plainer name; the icon is stored

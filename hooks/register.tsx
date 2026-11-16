@@ -188,10 +188,8 @@ async function callJson($: EngineInterface, server: string, tool: string, args: 
 
 type Row = Record<string, unknown>
 
-async function thisChat($: EngineInterface): Promise<Row> {
-  return (await callJson($, 'ccd_session_mgmt', 'get_session', { session_id: 'self' })) as Row
-}
-
+// The current chat: get_session with session_id 'self'. Written out at each place (not as a helper): the plugin
+// directory could not read the helper's calls.
 // All chats of the project, the current chat always included. list_sessions returns at most 300 chats;
 // `complete` is false when the list is full and older chats may be missing.
 const MAX_SESSIONS = 300
@@ -201,7 +199,7 @@ async function listChats(
   others: string[],
 ): Promise<{ chats: Chat[]; selfId: string; mine: Row; complete: boolean }> {
   const rows = (await callJson($, 'ccd_session_mgmt', 'list_sessions', { limit: MAX_SESSIONS })) as Row[]
-  const mine = await thisChat($)
+  const mine = (await callJson($, 'ccd_session_mgmt', 'get_session', { session_id: 'self' })) as Row
   const selfId = String(mine.sessionId ?? '')
   const all = [...rows.filter(r => String(r.sessionId) !== selfId), mine]
   return { chats: toChats(all, project, others), selfId, mine, complete: rows.length < MAX_SESSIONS }
@@ -431,7 +429,7 @@ async function autoOpen($: EngineInterface) {
   if (checkTries === 0) await openIfWanted($)
   checkTries++
   try {
-    const mine = await thisChat($)
+    const mine = (await callJson($, 'ccd_session_mgmt', 'get_session', { session_id: 'self' })) as Row
     selfId = String(mine.sessionId ?? '')
     if (selfId === '') return
     selfTitle = String(mine.title ?? '')
@@ -478,7 +476,7 @@ async function tick($: EngineInterface) {
   // Reload the current chat's title: it may have changed, even while another chat keeps the band fresh.
   if (global.statusbar) {
     try {
-      const info = await thisChat($)
+      const info = (await callJson($, 'ccd_session_mgmt', 'get_session', { session_id: 'self' })) as Row
       selfTitle = String(info.title ?? selfTitle)
     } catch {
       // App service not connected yet: keep the old title.
