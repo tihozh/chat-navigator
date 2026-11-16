@@ -1,6 +1,7 @@
 {
+  "language": "en",
   "statusbar": true,
   "crab": false,
-  "band": "offen",
+  "band": "active",
   "settings": { "staleDays": 14, "recent": 10, "pollMinutes": 1, "waitingHours": 48, "autoFix": true }
 }

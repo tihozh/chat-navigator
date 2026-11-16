@@ -1,44 +1,46 @@
 import { expect, test } from 'claude-code/testing'
 
-import type { Chat, Config } from '../types'
+import type { BandItem, Chat, Config } from '../types'
+import { configErrorText, findingText, texts } from '../hooks/i18n'
 import {
   age,
   areaOf,
+  crabFrame,
   endsWithQuestion,
+  failedFinding,
   inProjectPath,
   isSteering,
   nextNumber,
   normalizeConfig,
   normalizeGlobal,
-  crabFrame,
+  normalizePath,
   parse,
   pickProject,
-  savedResultPath,
-  normalizePath,
   planGuard,
+  savedResultPath,
   statusText,
   toChats,
   updateSeen,
   withPlannedTitles,
 } from '../hooks/logic'
 
-// Alle Daten hier sind erfunden.
+// All data here is made up.
 
 const NOW = Date.parse('2026-03-10T12:00:00Z')
 const ago = (days: number) => new Date(NOW - days * 86_400_000).toISOString()
 
 function config(over: Record<string, unknown> = {}): Config {
   const r = normalizeConfig({
-    name: 'Gartenprojekt',
-    project: '/home/demo/garten',
+    name: 'Garden',
+    project: '/home/demo/garden',
     areas: [
-      { id: '01', name: 'Planung', subs: [{ id: '01-01', name: 'Beete' }, { id: '01-02', name: 'Werkzeug' }] },
-      { id: '02', name: 'Ernte', subs: [] },
+      { id: '01', name: 'Planning', subs: [{ id: '01-01', name: 'Beds' }, { id: '01-02', name: 'Tools' }] },
+      { id: '02', name: 'Harvest', subs: [] },
     ],
     register: {},
     ...over,
   })
-  if ('error' in r) throw new Error(r.error)
+  if ('error' in r) throw new Error(JSON.stringify(r.error))
   return r.cfg
 }
 
@@ -46,37 +48,40 @@ function chat(id: string, title: string, over: Partial<Chat> = {}): Chat {
   return { id, title, group: '', groupId: '', isRunning: false, last: ago(1), link: `claude://chat/${id}`, parent: '', ...over }
 }
 
-// ---------- Titel ----------
+const GROUPS = [
+  { id: 'g1', name: '01 Planning' },
+  { id: 'g2', name: '02 Harvest' },
+]
 
-test('parse liest Nummer, Bereich, Unterordner und Titel', async () => {
-  expect(parse('01-02-03 · Tomaten')).toEqual({ num: '01-02-03', area: '01', sub: '01-02', rest: 'Tomaten' })
-  expect(parse('01 · Steuerung')).toEqual({ num: '01', area: '01', sub: '', rest: 'Steuerung' })
-  expect(parse('01-00·Steuer')).toEqual({ num: '01-00', area: '01', sub: '01-00', rest: 'Steuer' })
-  expect(parse('Tomaten')).toBe(null)
-  expect(parse('1-02 · zu kurz')).toBe(null)
+// ---------- Titles and numbers ----------
+
+test('parse reads number, area, sub-folder and title', async () => {
+  expect(parse('01-02-03 · Tomatoes')).toEqual({ num: '01-02-03', area: '01', sub: '01-02', rest: 'Tomatoes' })
+  expect(parse('01 · Steering')).toEqual({ num: '01', area: '01', sub: '', rest: 'Steering' })
+  expect(parse('01-00·Steer')).toEqual({ num: '01-00', area: '01', sub: '01-00', rest: 'Steer' })
+  expect(parse('Tomatoes')).toBe(null)
+  expect(parse('1-02 · too short')).toBe(null)
 })
 
-test('isSteering erkennt Steuerchats', async () => {
+test('isSteering recognises steering chats', async () => {
   expect(isSteering('01')).toBe(true)
   expect(isSteering('01-00')).toBe(true)
   expect(isSteering('01-02-00')).toBe(true)
   expect(isSteering('01-02-03')).toBe(false)
 })
 
-test('areaOf: Nummer vor Ablage vor Lauf vor Ordner', async () => {
-  const cfg = config({ ablage: ['a1'], runs: { patterns: ['Nachtlauf'] } })
-  expect(areaOf(cfg, chat('x', '02-01-01 · Kartoffeln', { group: '01 Planung' }))).toBe('02')
-  expect(areaOf(cfg, chat('a1', 'Alt'))).toBe('99')
-  expect(areaOf(cfg, chat('r', 'Nachtlauf 3'))).toBe('90')
-  expect(areaOf(cfg, chat('g', 'Ohne', { group: '02 Ernte' }))).toBe('02')
-  expect(areaOf(cfg, chat('n', 'Ohne'))).toBe('')
+test('areaOf: number before archive before run before group', async () => {
+  const cfg = config({ ablage: ['a1'], runs: { patterns: ['Nightly'] } })
+  expect(areaOf(cfg, chat('x', '02-01-01 · Potatoes', { group: '01 Planning' }))).toBe('02')
+  expect(areaOf(cfg, chat('a1', 'Old'))).toBe('99')
+  expect(areaOf(cfg, chat('r', 'Nightly 3'))).toBe('90')
+  expect(areaOf(cfg, chat('g', 'Loose', { group: '02 Harvest' }))).toBe('02')
+  expect(areaOf(cfg, chat('n', 'Loose'))).toBe('')
 })
 
-// ---------- Nummernvergabe ----------
-
-test('nextNumber nimmt das Maximum aus Register und Titeln', async () => {
+test('nextNumber takes the maximum of register and titles', async () => {
   const register = { '01-01-04': { session: 's4', title: 'x' } }
-  const chats = [{ title: '01-01-02 · a' }, { title: '01-01-07 · b' }, { title: '01-02-09 · anderer Ordner' }]
+  const chats = [{ title: '01-01-02 · a' }, { title: '01-01-07 · b' }, { title: '01-02-09 · other folder' }]
   expect(nextNumber(register, chats, '01-01')).toBe('01-01-08')
   expect(nextNumber({}, [], '01-02')).toBe('01-02-01')
   expect(nextNumber(register, [], '01-01')).toBe('01-01-05')
@@ -84,40 +89,40 @@ test('nextNumber nimmt das Maximum aus Register und Titeln', async () => {
   expect(nextNumber({}, [{ title: '01-01-99 · a' }], '01-01')).toBe('')
 })
 
-test('Wächter: voller Unterordner vergibt keine Nummer', async () => {
-  const chats = [chat('p', '01-01-99 · Letzter', { group: '01 Planung' }), chat('k', 'Neu', { parent: 'p' })]
-  const r = planGuard(config(), chats, GROUPS, NOW)
-  expect(r.actions).toEqual([])
-  expect(r.findings.map(f => f.kind)).toEqual(['Nummern voll'])
+// ---------- Which project a folder belongs to ----------
+
+test('inProjectPath: absolute path and bare folder name', async () => {
+  expect(inProjectPath('/home/demo/garden', '/home/demo/garden')).toBe(true)
+  expect(inProjectPath('/home/demo/garden/beds', '/home/demo/garden/')).toBe(true)
+  expect(inProjectPath('/home/demo/garden-old', '/home/demo/garden')).toBe(false)
+  expect(inProjectPath('/home/demo/x/garden/y', 'garden')).toBe(true)
+  expect(inProjectPath('/home/demo/garden-old', 'garden')).toBe(false)
+  expect(inProjectPath('', 'garden')).toBe(false)
 })
 
-// ---------- Projekt erkennen ----------
-
-test('inProjectPath: absoluter Pfad und alter Ordnername', async () => {
-  expect(inProjectPath('/home/demo/garten', '/home/demo/garten')).toBe(true)
-  expect(inProjectPath('/home/demo/garten/beet', '/home/demo/garten/')).toBe(true)
-  expect(inProjectPath('/home/demo/garten-alt', '/home/demo/garten')).toBe(false)
-  expect(inProjectPath('/home/demo/x/garten/y', 'garten')).toBe(true)
-  expect(inProjectPath('/home/demo/garten-alt', 'garten')).toBe(false)
-  expect(inProjectPath('', 'garten')).toBe(false)
+test('normalizePath and project borders with «..»', async () => {
+  expect(normalizePath('/a//b/./c/')).toBe('/a/b/c')
+  expect(normalizePath('/a/b/../c')).toBe('/a/c')
+  expect(inProjectPath('/home/demo/garden/../other', '/home/demo/garden')).toBe(false)
+  expect(inProjectPath('/home/demo/garden/beds/..', '/home/demo/garden')).toBe(true)
 })
 
-test('pickProject: der längste passende Pfad gewinnt', async () => {
+test('pickProject: the longest matching path wins', async () => {
   const a = { cfg: config({ project: '/home/demo' }) }
-  const b = { cfg: config({ project: '/home/demo/garten' }) }
-  const c = { cfg: config({ project: 'garten' }) }
-  expect(pickProject('/home/demo/garten/beet', [a, b, c])).toBe(b)
-  expect(pickProject('/home/demo/kueche', [a, b, c])).toBe(a)
-  expect(pickProject('/srv/garten', [a, b, c])).toBe(c)
-  expect(pickProject('/srv/anderes', [a, b, c])).toBe(null)
+  const b = { cfg: config({ project: '/home/demo/garden' }) }
+  const c = { cfg: config({ project: 'garden' }) }
+  expect(pickProject('/home/demo/garden/beds', [a, b, c])).toBe(b)
+  expect(pickProject('/home/demo/kitchen', [a, b, c])).toBe(a)
+  expect(pickProject('/srv/garden', [a, b, c])).toBe(c)
+  expect(pickProject('/srv/other', [a, b, c])).toBe(null)
 })
 
-// ---------- Einstellungen ----------
+// ---------- Settings ----------
 
-test('normalizeConfig setzt Standardwerte und liest alte Schlüssel', async () => {
-  const cfg = config({ ablage: ['a1'], laeufe: ['Nacht'] })
+test('normalizeConfig sets defaults and reads older keys', async () => {
+  const cfg = config({ ablage: ['a1'], laeufe: ['Nightly'] })
   expect(cfg.archive).toEqual({ area: '99', sessions: ['a1'] })
-  expect(cfg.runs).toEqual({ area: '90', patterns: ['Nacht'] })
+  expect(cfg.runs).toEqual({ area: '90', patterns: ['Nightly'] })
   expect(cfg.settings).toEqual({ staleDays: 14, recent: 10, pollMinutes: 1, waitingHours: 48, autoFix: true })
   expect(config({ settings: { autoFix: false } }).settings.autoFix).toBe(false)
   const custom = config({ settings: { staleDays: 30, recent: 5 }, archive: { area: '98', sessions: ['b'] } })
@@ -126,203 +131,244 @@ test('normalizeConfig setzt Standardwerte und liest alte Schlüssel', async () =
   expect(custom.archive).toEqual({ area: '98', sessions: ['b'] })
 })
 
-test('normalizeConfig meldet kaputte Dateien klar', async () => {
-  expect(normalizeConfig(null)).toEqual({ error: 'kein JSON-Objekt' })
-  expect('error' in normalizeConfig({ areas: [] })).toBe(true)
-  expect('error' in normalizeConfig({ project: '/p', areas: [{ id: '1', subs: [] }] })).toBe(true)
-  expect('error' in normalizeConfig({ project: '/p', areas: [{ id: '01', subs: [{ id: '02-01' }] }] })).toBe(true)
-  expect('error' in normalizeConfig({ project: '/p', areas: [], register: { '01-01-01': { title: 'x' } } })).toBe(true)
-  expect('error' in normalizeConfig({ project: '/p', areas: [{ id: '01', subs: [{ id: '01-bogus' }] }] })).toBe(true)
-  expect('error' in normalizeConfig({ project: '/p', areas: [{ id: '01', subs: [] }, { id: '01', subs: [] }] })).toBe(true)
-  expect('error' in normalizeConfig({ project: '/p', areas: [{ id: '01', subs: [{ id: '01-01' }, { id: '01-01' }] }] })).toBe(true)
-  expect('error' in normalizeConfig({ project: '/p', areas: [], register: { abc: { session: 's' } } })).toBe(true)
-  expect('error' in normalizeConfig({ project: '/p', areas: [{ id: '01', group: '', subs: [] }] })).toBe(true)
+test('normalizeConfig reports broken files clearly', async () => {
+  expect(normalizeConfig(null)).toEqual({ error: { code: 'notObject' } })
+  expect(normalizeConfig({ project: '/p', areas: [{ id: '01', subs: [] }, { id: '01', subs: [] }] })).toEqual({ error: { code: 'dupArea', area: '01' } })
+  const broken = [
+    { areas: [] },
+    { project: '/p', areas: [{ id: '1', subs: [] }] },
+    { project: '/p', areas: [{ id: '01', subs: [{ id: '02-01' }] }] },
+    { project: '/p', areas: [{ id: '01', subs: [{ id: '01-bogus' }] }] },
+    { project: '/p', areas: [{ id: '01', subs: [] }, { id: '01', subs: [] }] },
+    { project: '/p', areas: [{ id: '01', subs: [{ id: '01-01' }, { id: '01-01' }] }] },
+    { project: '/p', areas: [{ id: '01', group: '', subs: [] }] },
+    { project: '/p', areas: [], register: { '01-01-01': { title: 'x' } } },
+    { project: '/p', areas: [], register: { abc: { session: 's' } } },
+  ]
+  for (const raw of broken) expect('error' in normalizeConfig(raw)).toBe(true)
   expect('cfg' in normalizeConfig({ project: '/p', areas: [] })).toBe(true)
 })
 
-// ---------- Wächter ----------
-
-const GROUPS = [
-  { id: 'g1', name: '01 Planung' },
-  { id: 'g2', name: '02 Ernte' },
-]
-
-test('Wächter: Unterchat erbt die nächste Nummer seines Steuerchats', async () => {
-  const cfg = config()
-  const chats = [
-    chat('p', '01-01-03 · Beetplan', { group: '01 Planung' }),
-    chat('k1', 'Kompost', { parent: 'p', group: '01 Planung' }),
-    chat('k2', 'Mulch', { parent: 'p', group: '01 Planung' }),
-  ]
-  const r = planGuard(cfg, chats, GROUPS, NOW)
-  expect(r.actions).toEqual([
-    { kind: 'rename', chatId: 'k1', num: '01-01-04', title: '01-01-04 · Kompost', original: 'Kompost' },
-    { kind: 'rename', chatId: 'k2', num: '01-01-05', title: '01-01-05 · Mulch', original: 'Mulch' },
-  ])
-  expect(r.findings).toEqual([])
-})
-
-test('Wächter: keine Nummer erben von Steuerchat NN-00, Ablage oder registrierten Chats', async () => {
-  const cfg = config({ register: { '01-01-01': { session: 'reg', title: 'Geplant' } }, ablage: ['alt'] })
-  const chats = [
-    chat('s', '01-00 · Steuerung', { group: '01 Planung' }),
-    chat('a', 'Frage', { parent: 's' }),
-    chat('p', '01-01-02 · Beet', { group: '01 Planung' }),
-    chat('reg', 'Geplant', { parent: 'p' }),
-    chat('alt', 'Archiv', { parent: 'p' }),
-  ]
-  const r = planGuard(cfg, chats, GROUPS, NOW)
-  expect(r.actions).toEqual([])
-  expect(r.findings.map(f => [f.kind, f.chatId])).toEqual([
-    ['Ohne Nummer', 'a'],
-    ['Ohne Nummer', 'reg'],
-  ])
-})
-
-test('Wächter: falscher Ordner wird mit Ziel gemeldet, fehlender gemeldet, Unterchats bleiben', async () => {
-  const cfg = config()
-  const chats = [
-    chat('m', '02-01 · Ernteplan', { group: '01 Planung' }),
-    chat('x', '03-01 · Ohne Ordner', { group: '01 Planung' }),
-    chat('u', '02-02 · Unterchat', { group: '01 Planung', parent: 'm' }),
-  ]
-  const r = planGuard(cfg, chats, GROUPS, NOW)
-  expect(r.actions).toEqual([])
-  expect(r.findings.map(f => [f.kind, f.chatId])).toEqual([['Falscher Ordner', 'm'], ['Ordner fehlt', 'x']])
-  expect(r.findings[0]?.text).toBe('02-01 · Ernteplan → in «02 Ernte» verschieben')
-})
-
-test('Wächter: eigener Ordner je Bereich schlägt gleiche Nummer anderer Projekte', async () => {
-  const cfg = config({ areas: [{ id: '01', name: 'Planung', group: 'Garten · Planung', subs: [] }] })
-  const groups = [{ id: 'fremd', name: '01 Fremdes Projekt' }, { id: 'own', name: 'Garten · Planung' }]
-  const chats = [
-    chat('m', '01-01 · Plan', { group: '00 Irgendwo' }),
-    chat('u', '01-03 · Unterchat', { group: '00 Irgendwo', parent: 'ausserhalb' }),
-    chat('ok', '01-02 · Schon da', { group: 'Garten · Planung' }),
-    chat('n', 'Ohne Nummer', { group: 'Garten · Planung' }),
-  ]
-  const r = planGuard(cfg, chats, groups, NOW)
-  expect(r.findings.filter(f => f.kind === 'Falscher Ordner').map(f => f.text)).toEqual(['01-01 · Plan → in «Garten · Planung» verschieben'])
-  expect(areaOf(cfg, chats[2] as Chat)).toBe('01')
-  const missing = planGuard(cfg, [chat('m', '01-01 · Plan')], [{ id: 'fremd', name: '01 Fremdes Projekt' }], NOW)
-  expect(missing.findings.map(f => f.text)).toEqual(['01-01 · Plan (kein Ordner «Garten · Planung»)'])
-})
-
-test('Wächter: mehrere Ordner mit gleicher Nummer', async () => {
-  const groups = [...GROUPS, { id: 'g9', name: '02 Ernte (anderes Projekt)' }]
-  const a = planGuard(config(), [chat('m', '02-01 · Plan', { group: '01 Planung' })], groups, NOW)
-  expect(a.findings.map(f => f.kind)).toEqual(['Ordner unklar'])
-  const chats = [chat('m', '02-01 · Plan', { group: '01 Planung' }), chat('e', 'Ohne', { group: '02 Ernte', groupId: 'g2' })]
-  const b = planGuard(config(), chats, groups, NOW)
-  expect(b.findings.filter(f => f.kind === 'Falscher Ordner').map(f => f.text)).toEqual(['02-01 · Plan → in «02 Ernte» verschieben'])
-})
-
-test('Wächter: doppelte Nummern und lange unbenutzte Chats', async () => {
-  const cfg = config({ register: { '01-01-01': { session: 'z', title: 'Z' } } })
-  const chats = [
-    chat('a', '01-01-01 · Eins', { group: '01 Planung', last: ago(20) }),
-    chat('b', '01-01-01 · Zwei', { group: '01 Planung' }),
-    chat('z', 'Z', { group: '01 Planung' }),
-    chat('s', '01-01-00 · Steuer', { group: '01 Planung', last: ago(40) }),
-  ]
-  const kinds = planGuard(cfg, chats, GROUPS, NOW).findings.map(f => `${f.kind}:${f.chatId}`)
-  expect(kinds).toContain('Nummer doppelt:b')
-  expect(kinds).toContain('Nummer doppelt:a')
-  expect(kinds).toContain('Lange unbenutzt:a')
-  expect(kinds.includes('Lange unbenutzt:s')).toBe(false)
-})
-
-// ---------- Status ----------
-
-test('endsWithQuestion erkennt Fragen und AskUserQuestion', async () => {
-  expect(endsWithQuestion('[user] hallo\n[assistant] Soll ich weitermachen?')).toBe(true)
-  expect(endsWithQuestion('[assistant] (called AskUserQuestion)\n[result] ok')).toBe(true)
-  expect(endsWithQuestion('[assistant] Erledigt.')).toBe(false)
-  expect(endsWithQuestion('[assistant] Passt das?\nGruss')).toBe(true)
-  expect(endsWithQuestion('[assistant] Soll ich?\n[user] ja')).toBe(false)
-  expect(endsWithQuestion('[assistant] (called AskUserQuestion)\n[result] ok\n[assistant] Erledigt.')).toBe(false)
-  expect(endsWithQuestion('[assistant] (called Bash)\n[result] ok')).toBe(false)
-})
-
-test('updateSeen: neue Chats gelten als gesehen, Aktivität danach ist neu', async () => {
-  const chats = [
-    { id: 'a', last: ago(0), isRunning: false },
-    { id: 'b', last: ago(0), isRunning: false },
-    { id: 'self', last: ago(0), isRunning: false },
-  ]
-  const r = updateSeen(chats, { b: ago(1), weg: ago(40), kurz: ago(5) }, 'self', NOW)
-  expect(r.fresh.has('b')).toBe(true)
-  expect(r.fresh.has('a')).toBe(false)
-  expect(r.seen.a).toBe(ago(0))
-  expect('weg' in r.seen).toBe(false)
-  expect('kurz' in r.seen).toBe(true)
-  expect(r.changed).toBe(true)
-  expect(r.seen.self).toBe(ago(0))
-})
-
-test('age in Worten', async () => {
-  expect(age(new Date(NOW - 60_000).toISOString(), NOW)).toBe('jetzt')
-  expect(age(new Date(NOW - 20 * 60_000).toISOString(), NOW)).toBe('20 Min.')
-  expect(age(new Date(NOW - 3 * 3_600_000).toISOString(), NOW)).toBe('3 Std.')
-  expect(age(ago(2), NOW)).toBe('2 T.')
-  expect(age('kaputt', NOW)).toBe('')
-})
-
-// ---------- Chats aus der App ----------
-
-test('toChats nimmt nur Chats des Projekts, ohne archivierte', async () => {
-  const rows = [
-    { sessionId: 'a', title: 'A', cwd: '/home/demo/garten', group: { id: 'g1', name: '01 Planung' }, startedBy: 'p' },
-    { sessionId: 'b', title: 'B', cwd: '/home/demo/garten', isArchived: true },
-    { sessionId: 'c', title: 'C', cwd: '/home/demo/kueche' },
-    { sessionId: 'd', title: 'D' },
-  ]
-  const chats = toChats(rows, '/home/demo/garten')
-  expect(chats.map(c => c.id)).toEqual(['a'])
-  expect(chats[0]?.group).toBe('01 Planung')
-  expect(chats[0]?.parent).toBe('p')
-  const nested = [{ sessionId: 'u', cwd: '/home/demo/garten/teich' }, { sessionId: 'g', cwd: '/home/demo/garten' }]
-  const all = ['/home/demo/garten', '/home/demo/garten/teich']
-  expect(toChats(nested, '/home/demo/garten', all).map(c => c.id)).toEqual(['g'])
-  expect(toChats(nested, '/home/demo/garten/teich', all).map(c => c.id)).toEqual(['u'])
-})
-
-test('withPlannedTitles zeigt geplante Nummern als Vorschau', async () => {
-  const cfg = config({ register: { '01-01-01': { session: 'a', title: 'Alt' } } })
-  const r = withPlannedTitles(cfg, [chat('a', 'Alt'), chat('b', '01-01-02 · Fertig')])
-  expect(r.planned).toBe(1)
-  expect(r.chats[0]?.title).toBe('01-01-01 · Alt')
-  expect(r.chats[1]?.title).toBe('01-01-02 · Fertig')
-})
-
-// ---------- Zentrale Datei und Statusleiste ----------
-
-test('normalizeGlobal: Vorgaben, Modus und Projekt-Vorrang', async () => {
-  expect(normalizeGlobal(undefined)).toEqual({ statusbar: true, crab: false, band: 'offen', settings: { staleDays: 14, recent: 10, pollMinutes: 1, waitingHours: 48, autoFix: true } })
-  const g = normalizeGlobal({ statusbar: false, crab: true, band: 'immer', settings: { recent: 5, staleDays: 30 } })
+test('normalizeGlobal: defaults, language, modes and project precedence', async () => {
+  expect(normalizeGlobal(undefined)).toEqual({
+    language: 'en',
+    statusbar: true,
+    crab: false,
+    band: 'active',
+    settings: { staleDays: 14, recent: 10, pollMinutes: 1, waitingHours: 48, autoFix: true },
+  })
+  const g = normalizeGlobal({ language: 'de', statusbar: false, crab: true, band: 'always', settings: { recent: 5, staleDays: 30 } })
+  expect(g.language).toBe('de')
   expect(g.statusbar).toBe(false)
   expect(g.crab).toBe(true)
-  expect(normalizeGlobal({ crab: 'ja' }).crab).toBe(false)
-  expect(g.band).toBe('immer')
-  expect(normalizeGlobal({ band: 'quatsch' }).band).toBe('offen')
+  expect(g.band).toBe('always')
+  expect(normalizeGlobal({ language: 'fr' }).language).toBe('en')
+  expect(normalizeGlobal({ crab: 'yes' }).crab).toBe(false)
+  expect(normalizeGlobal({ band: 'nonsense' }).band).toBe('active')
+  // German values of earlier versions still work.
+  expect(normalizeGlobal({ band: 'aus' }).band).toBe('off')
+  expect(normalizeGlobal({ band: 'immer' }).band).toBe('always')
   const r = normalizeConfig({ project: '/p', areas: [], settings: { staleDays: 7 } }, g.settings)
   expect('cfg' in r && r.cfg.settings.recent).toBe(5)
   expect('cfg' in r && r.cfg.settings.staleDays).toBe(7)
 })
 
-test('statusText: Nummer und offene Punkte anderer Chats', async () => {
-  const items = [
-    { id: 'a', num: '01-01-02', title: 'A', link: '', state: 'wartet' as const },
-    { id: 'b', num: '', title: 'B', link: '', state: 'wartet' as const },
-    { id: 'c', num: '', title: 'C', link: '', state: 'neu' as const },
-    { id: 'me', num: '01-01-01', title: 'Ich', link: '', state: 'arbeitet' as const },
+// ---------- Guard ----------
+
+test('guard: a sub-chat inherits the next number of its parent', async () => {
+  const chats = [
+    chat('p', '01-01-03 · Bed plan', { group: '01 Planning' }),
+    chat('k1', 'Compost', { parent: 'p', group: '01 Planning' }),
+    chat('k2', 'Mulch', { parent: 'p', group: '01 Planning' }),
   ]
-  expect(statusText('01-01-01 · Tomaten', 'me', items)).toBe('01-01-01 · 🟠 2 wartet · 🔵 1 neu')
-  expect(statusText('01-01-01 · Tomaten', 'me', [])).toBe('01-01-01')
-  expect(statusText('Ein sehr langer Titel ohne jede Nummer darin', 'me', [])).toBe('Ein sehr langer Titel ohne je…')
+  const r = planGuard(config(), chats, GROUPS, NOW)
+  expect(r.actions).toEqual([
+    { kind: 'rename', chatId: 'k1', num: '01-01-04', title: '01-01-04 · Compost', original: 'Compost' },
+    { kind: 'rename', chatId: 'k2', num: '01-01-05', title: '01-01-05 · Mulch', original: 'Mulch' },
+  ])
+  expect(r.findings).toEqual([])
 })
 
-test('crabFrame: der Krebs läuft hin und zurück', async () => {
+test('guard: no number from steering chats NN-00, archive, registered chats or unknown sub-folders', async () => {
+  const cfg = config({ register: { '01-01-01': { session: 'reg', title: 'Planned' } }, ablage: ['old'] })
+  const chats = [
+    chat('s', '01-00 · Steering', { group: '01 Planning' }),
+    chat('a', 'Question', { parent: 's' }),
+    chat('p', '01-01-02 · Bed', { group: '01 Planning' }),
+    chat('reg', 'Planned', { parent: 'p' }),
+    chat('old', 'Archive', { parent: 'p' }),
+    chat('f', '01-05-02 · Unknown folder', { group: '01 Planning' }),
+    chat('k', 'Child', { parent: 'f' }),
+  ]
+  const r = planGuard(cfg, chats, GROUPS, NOW)
+  expect(r.actions).toEqual([])
+  expect(r.findings.filter(f => f.kind === 'noNumber').map(f => f.chatId)).toEqual(['a', 'reg', 'k'])
+})
+
+test('guard: a full sub-folder gets no number', async () => {
+  const chats = [chat('p', '01-01-99 · Last', { group: '01 Planning' }), chat('k', 'New', { parent: 'p' })]
+  const r = planGuard(config(), chats, GROUPS, NOW)
+  expect(r.actions).toEqual([])
+  expect(r.findings).toEqual([{ kind: 'numbersFull', chatId: 'k', title: 'New', sub: '01-01' }])
+})
+
+test('guard: wrong group reported with target, missing group reported, sub-chats left alone', async () => {
+  const chats = [
+    chat('m', '02-01 · Harvest plan', { group: '01 Planning' }),
+    chat('x', '03-01 · No group', { group: '01 Planning' }),
+    chat('u', '02-02 · Sub-chat', { group: '01 Planning', parent: 'm' }),
+  ]
+  const r = planGuard(config(), chats, GROUPS, NOW)
+  expect(r.actions).toEqual([])
+  expect(r.findings).toEqual([
+    { kind: 'wrongGroup', chatId: 'm', title: '02-01 · Harvest plan', group: '02 Harvest' },
+    { kind: 'missingGroup', chatId: 'x', title: '03-01 · No group', group: '03 …' },
+  ])
+})
+
+test('guard: an area with its own group beats the same number of another project', async () => {
+  const cfg = config({ areas: [{ id: '01', name: 'Planning', group: 'Garden · Planning', subs: [] }] })
+  const groups = [
+    { id: 'other', name: '01 Other project' },
+    { id: 'own', name: 'Garden · Planning' },
+  ]
+  const chats = [
+    chat('m', '01-01 · Plan', { group: '00 Somewhere' }),
+    chat('u', '01-03 · Sub-chat', { group: '00 Somewhere', parent: 'outside' }),
+    chat('ok', '01-02 · Already there', { group: 'Garden · Planning' }),
+    chat('n', 'No number', { group: 'Garden · Planning' }),
+  ]
+  const r = planGuard(cfg, chats, groups, NOW)
+  expect(r.findings.filter(f => f.kind === 'wrongGroup')).toEqual([{ kind: 'wrongGroup', chatId: 'm', title: '01-01 · Plan', group: 'Garden · Planning' }])
+  expect(areaOf(cfg, chats[3] as Chat)).toBe('01')
+  const missing = planGuard(cfg, [chat('m', '01-01 · Plan')], [{ id: 'other', name: '01 Other project' }], NOW)
+  expect(missing.findings).toEqual([{ kind: 'missingGroup', chatId: 'm', title: '01-01 · Plan', group: 'Garden · Planning' }])
+})
+
+test('guard: several groups with the same number', async () => {
+  const groups = [...GROUPS, { id: 'g9', name: '02 Harvest (other project)' }]
+  const a = planGuard(config(), [chat('m', '02-01 · Plan', { group: '01 Planning' })], groups, NOW)
+  expect(a.findings.map(f => f.kind)).toEqual(['unclearGroup'])
+  const chats = [chat('m', '02-01 · Plan', { group: '01 Planning' }), chat('e', 'Loose', { group: '02 Harvest', groupId: 'g2' })]
+  const b = planGuard(config(), chats, groups, NOW)
+  expect(b.findings.filter(f => f.kind === 'wrongGroup').map(f => (f.kind === 'wrongGroup' ? f.group : ''))).toEqual(['02 Harvest'])
+})
+
+test('guard: duplicate numbers and chats unused for long', async () => {
+  const cfg = config({ register: { '01-01-01': { session: 'z', title: 'Z' } } })
+  const chats = [
+    chat('a', '01-01-01 · One', { group: '01 Planning', last: ago(20) }),
+    chat('b', '01-01-01 · Two', { group: '01 Planning' }),
+    chat('z', 'Z', { group: '01 Planning' }),
+    chat('s', '01-01-00 · Steer', { group: '01 Planning', last: ago(40) }),
+  ]
+  const kinds = planGuard(cfg, chats, GROUPS, NOW).findings.map(f => `${f.kind}:${f.chatId}`)
+  expect(kinds).toContain('duplicate:b')
+  expect(kinds).toContain('duplicateRegister:a')
+  expect(kinds).toContain('stale:a')
+  expect(kinds.includes('stale:s')).toBe(false)
+})
+
+// ---------- Texts in both languages ----------
+
+test('findings read well in English and German', async () => {
+  const wrong = { kind: 'wrongGroup' as const, chatId: 'm', title: '02-01 · Plan', group: '02 Harvest' }
+  expect(findingText('en', wrong)).toBe('02-01 · Plan → move to «02 Harvest»')
+  expect(findingText('de', wrong)).toBe('02-01 · Plan → in «02 Harvest» verschieben')
+  const held = failedFinding({ kind: 'rename', chatId: 'k', num: '01-01-04', title: '01-01-04 · K', original: 'K' }, { code: 'autoFixOff' })
+  expect(findingText('en', held)).toBe('K (automatic numbering off)')
+  expect(findingText('de', held)).toBe('K (Selbst-Nummerieren aus)')
+  expect(texts('de').findingLabel.stale).toBe('Lange unbenutzt')
+})
+
+test('every German text exists in English and the other way round', async () => {
+  const keys = (o: object) => Object.keys(o).sort()
+  expect(keys(texts('de'))).toEqual(keys(texts('en')))
+  expect(keys(texts('de').findingLabel)).toEqual(keys(texts('en').findingLabel))
+})
+
+test('age in words', async () => {
+  expect(age(new Date(NOW - 60_000).toISOString(), NOW)).toBe('now')
+  expect(age(new Date(NOW - 20 * 60_000).toISOString(), NOW)).toBe('20 min')
+  expect(age(new Date(NOW - 3 * 3_600_000).toISOString(), NOW, 'de')).toBe('3 Std.')
+  expect(age(ago(2), NOW)).toBe('2 d')
+  expect(age('broken', NOW)).toBe('')
+})
+
+// ---------- Status ----------
+
+test('endsWithQuestion recognises open questions and AskUserQuestion', async () => {
+  expect(endsWithQuestion('[user] hello\n[assistant] Shall I go on?')).toBe(true)
+  expect(endsWithQuestion('[assistant] (called AskUserQuestion)\n[result] ok')).toBe(true)
+  expect(endsWithQuestion('[assistant] Done.')).toBe(false)
+  expect(endsWithQuestion('[assistant] Is that fine?\nCheers')).toBe(true)
+  expect(endsWithQuestion('[assistant] Shall I?\n[user] yes')).toBe(false)
+  expect(endsWithQuestion('[assistant] (called AskUserQuestion)\n[result] ok\n[assistant] Done.')).toBe(false)
+  expect(endsWithQuestion('[assistant] (called Bash)\n[result] ok')).toBe(false)
+})
+
+test('updateSeen: unknown chats count as seen, later activity is new', async () => {
+  const chats = [
+    { id: 'a', last: ago(0), isRunning: false },
+    { id: 'b', last: ago(0), isRunning: false },
+    { id: 'self', last: ago(0), isRunning: false },
+  ]
+  const r = updateSeen(chats, { b: ago(1), gone: ago(40), recent: ago(5) }, 'self', NOW)
+  expect(r.fresh.has('b')).toBe(true)
+  expect(r.fresh.has('a')).toBe(false)
+  expect(r.seen.a).toBe(ago(0))
+  expect('gone' in r.seen).toBe(false)
+  expect('recent' in r.seen).toBe(true)
+  expect(r.changed).toBe(true)
+  expect(r.seen.self).toBe(ago(0))
+})
+
+// ---------- Chats from the app ----------
+
+test('toChats keeps only the project chats, without archived ones or sub-projects', async () => {
+  const rows = [
+    { sessionId: 'a', title: 'A', cwd: '/home/demo/garden', group: { id: 'g1', name: '01 Planning' }, startedBy: 'p' },
+    { sessionId: 'b', title: 'B', cwd: '/home/demo/garden', isArchived: true },
+    { sessionId: 'c', title: 'C', cwd: '/home/demo/kitchen' },
+    { sessionId: 'd', title: 'D' },
+  ]
+  const chats = toChats(rows, '/home/demo/garden')
+  expect(chats.map(c => c.id)).toEqual(['a'])
+  expect(chats[0]?.group).toBe('01 Planning')
+  expect(chats[0]?.parent).toBe('p')
+  const nested = [
+    { sessionId: 'u', cwd: '/home/demo/garden/pond' },
+    { sessionId: 'g', cwd: '/home/demo/garden' },
+  ]
+  const all = ['/home/demo/garden', '/home/demo/garden/pond']
+  expect(toChats(nested, '/home/demo/garden', all).map(c => c.id)).toEqual(['g'])
+  expect(toChats(nested, '/home/demo/garden/pond', all).map(c => c.id)).toEqual(['u'])
+})
+
+test('withPlannedTitles shows planned numbers as a preview', async () => {
+  const cfg = config({ register: { '01-01-01': { session: 'a', title: 'Old' } } })
+  const r = withPlannedTitles(cfg, [chat('a', 'Old'), chat('b', '01-01-02 · Done')])
+  expect(r.planned).toBe(1)
+  expect(r.chats[0]?.title).toBe('01-01-01 · Old')
+  expect(r.chats[1]?.title).toBe('01-01-02 · Done')
+})
+
+// ---------- Status bar ----------
+
+test('statusText: own number and open items of other chats', async () => {
+  const items: BandItem[] = [
+    { id: 'a', num: '01-01-02', title: 'A', link: '', state: 'waiting' },
+    { id: 'b', num: '', title: 'B', link: '', state: 'waiting' },
+    { id: 'c', num: '', title: 'C', link: '', state: 'new' },
+    { id: 'me', num: '01-01-01', title: 'Me', link: '', state: 'working' },
+  ]
+  expect(statusText('01-01-01 · Tomatoes', 'me', items)).toBe('01-01-01 · 🟠 2 waiting · 🔵 1 new')
+  expect(statusText('01-01-01 · Tomatoes', 'me', items, 'de')).toBe('01-01-01 · 🟠 2 wartet · 🔵 1 neu')
+  expect(statusText('01-01-01 · Tomatoes', 'me', [])).toBe('01-01-01')
+  expect(statusText('A very long title without any number', 'me', [])).toBe('A very long title without any…')
+})
+
+test('crabFrame: the crab runs there and back', async () => {
   const gap = (t: string) => t.indexOf('🦀')
   expect(crabFrame(2, 0, 3)).toBe('🦀 2···')
   expect(crabFrame(2, 2, 3)).toBe('··🦀 2·')
@@ -331,9 +377,9 @@ test('crabFrame: der Krebs läuft hin und zurück', async () => {
   expect([0, 1, 2, 3, 4, 5, 6, 7].map(s => gap(crabFrame(1, s, 3)))).toEqual([0, 1, 2, 3, 2, 1, 0, 1])
 })
 
-// ---------- Sicherheit ----------
+// ---------- Security ----------
 
-test('savedResultPath liest nur Hinweise auf den Ergebnisordner der App', async () => {
+test('savedResultPath only follows notices pointing into the app results folder', async () => {
   const H = '/home/demo'
   const ok = '/home/demo/.claude/projects/x/tool-results/a.txt'
   expect(savedResultPath(`Output saved to: ${ok}`, H)).toBe(ok)
@@ -346,16 +392,12 @@ test('savedResultPath liest nur Hinweise auf den Ergebnisordner der App', async 
   expect(savedResultPath(`saved to ${ok}`, '')).toBe(null)
 })
 
-test('normalizePath und Projektgrenzen mit «..»', async () => {
-  expect(normalizePath('/a//b/./c/')).toBe('/a/b/c')
-  expect(normalizePath('/a/b/../c')).toBe('/a/c')
-  expect(inProjectPath('/home/demo/garten/../fremd', '/home/demo/garten')).toBe(false)
-  expect(inProjectPath('/home/demo/garten/beet/..', '/home/demo/garten')).toBe(true)
+test('settings errors read well in English and German', async () => {
+  expect(configErrorText('en', { code: 'dupSub', area: '01' })).toBe('area 01: a sub-folder appears twice')
+  expect(configErrorText('de', { code: 'noSession', num: '01-01-01' })).toBe('Register 01-01-01: «session» fehlt')
 })
 
-test('Wächter: keine Nummer in Unterordner, die nicht eingerichtet sind', async () => {
-  const chats = [chat('p', '01-05-02 · Fremd', { group: '01 Planung' }), chat('k', 'Kind', { parent: 'p' })]
-  const r = planGuard(config(), chats, GROUPS, NOW)
-  expect(r.actions).toEqual([])
-  expect(r.findings.map(f => [f.kind, f.chatId])).toContainEqual(['Ohne Nummer', 'k'])
+test('band aliases accept only real mode names', async () => {
+  expect(normalizeGlobal({ band: 'constructor' }).band).toBe('active')
+  expect(normalizeGlobal({ band: 'offen' }).band).toBe('active')
 })

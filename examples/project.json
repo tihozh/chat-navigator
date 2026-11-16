@@ -1,0 +1,26 @@
+{
+  "name": "Garden",
+  "project": "/Users/demo/projects/garden",
+  "areas": [
+    {
+      "id": "01",
+      "name": "Planning",
+      "group": "Garden · 01 Planning",
+      "subs": [
+        { "id": "01-01", "name": "Beds" },
+        { "id": "01-02", "name": "Tools" }
+      ]
+    },
+    {
+      "id": "02",
+      "name": "Harvest",
+      "subs": [{ "id": "02-01", "name": "Storage" }]
+    }
+  ],
+  "register": {
+    "01-01-01": { "session": "00000000-0000-0000-0000-000000000001", "title": "Start tomatoes indoors" }
+  },
+  "archive": { "area": "99", "sessions": [] },
+  "runs": { "area": "90", "patterns": ["Nightly"] },
+  "settings": { "staleDays": 14, "recent": 10, "pollMinutes": 1, "waitingHours": 48, "autoFix": true }
+}

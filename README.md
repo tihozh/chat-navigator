@@ -1,29 +1,33 @@
-# Chat-Navigator
+# Chat Navigator
 
-Ein Plugin für die **Claude Desktop-App** (Code-Tab), wenn ein Projekt viele Chats hat. Es zeigt alle Chats
-eines Projekts als nummerierten Baum in einem Panel neben dem Chat und hält die Ordnung selbst sauber.
+**English** · [Deutsch](README.de.md)
 
-- **Baum:** Bereiche (`01`), Unterordner (`01-02`) und Chats (`01-02-03 · Titel`); Steuerchats `NN-00`.
-- **Dieser Chat:** der aktuelle Chat ist hervorgehoben, sein Bereich aufgeklappt.
-- **Zuletzt bearbeitet:** die letzten 10 Chats, mit Status: arbeitet, wartet auf dich, neu.
-- **Zu klären:** Chats ohne Nummer, im falschen Ordner, mit doppelter Nummer oder lange unbenutzt.
-- **Ordnet selbst:** Ein Chat, der aus einem nummerierten Chat gestartet wurde, erbt die nächste freie
-  Nummer. Liegt ein Chat im falschen Seitenleisten-Ordner, sagt «Zu klären», wohin er gehört; verschieben
-  tust du ihn selbst (die App lässt ein Plugin andere Chats nicht ohne Rückfrage verschieben).
-- **Zeile über dem Eingabefeld:** wer wartet, was neu ist, wie viele arbeiten; ein Klick öffnet den Chat.
-- **Statusleiste unten:** Nummer dieses Chats und offene Punkte, z. B. `01-01-01 · 🟠 2 wartet · 🔵 1 neu`.
-- Öffnet sich in jedem Chat des Projekts von selbst, nicht in geplanten Läufen und nicht dort, wo du es
-  geschlossen hast. Mehrere Projekte gehen: jedes hat seine eigene Einstellungsdatei.
+A plugin for the **Claude desktop app** (Code tab) for projects with many chats. It shows all chats of a
+project as a numbered tree in a pane next to the chat and keeps the order tidy.
+
+- **Tree:** areas (`01`), sub-folders (`01-02`) and chats (`01-02-03 · Title`); steering chats `NN-00`.
+- **This chat:** the current chat is highlighted and its area expanded.
+- **Recently active:** the last 10 chats, with their state: working, waiting for you, new.
+- **To clarify:** chats without a number, in the wrong sidebar group, with a duplicate number or unused for long.
+- **Automatic numbering:** a chat started from a numbered chat gets the next free number. If a chat is in the
+  wrong sidebar group, «To clarify» says where it belongs; moving it is up to you (the app does not let a
+  plugin move other chats without asking).
+- **Line above the prompt:** who is waiting, what is new, how many are working; a click opens the chat.
+- **Status bar:** this chat's number and open items, e.g. `01-01-01 · 🟠 2 waiting · 🔵 1 new`. Optionally a
+  crab 🦀 runs across it while a chat is waiting for you.
+- Opens automatically in every chat of the project, not in scheduled runs and not where you closed it. Several
+  projects work side by side, each with its own settings file.
+- English and German user interface.
 
 ## Installation
 
-In einem Terminal-Chat von Claude Code:
+In a terminal session of Claude Code:
 
 ```
 /plugin install chat-navigator --marketplace tihozh/chat-navigator
 ```
 
-Mit `y` den Marktplatz hinzufügen, dann den Bereich «user» wählen. Ohne Prompt geht es auch so:
+Confirm adding the marketplace with `y`, then choose the «user» scope. Without the prompt:
 
 ```bash
 claude plugin marketplace add tihozh/chat-navigator
@@ -33,65 +37,66 @@ claude plugin marketplace add tihozh/chat-navigator
 claude plugin install chat-navigator@chat-navigator
 ```
 
-In der Desktop-App: + neben dem Eingabefeld → Plugins → Marktplatz hinzufügen (`tihozh/chat-navigator`) →
-Plugin hinzufügen. Danach die App neu starten.
+In the desktop app: + next to the prompt box → Plugins → Add marketplace (`tihozh/chat-navigator`) → Add plugin.
+Then restart the app.
 
-## Einrichten
+## Setup
 
-Öffne einen Chat im Projektordner und tippe:
+Open a chat in the project folder and type:
 
 ```
 /chat-navigator:setup
 ```
 
-Claude liest deine Chats und Seitenleisten-Ordner, schlägt Bereiche vor, schreibt die Einstellungsdatei
-und plant Nummern für die bestehenden Chats. Titel werden erst nach deinem Ja umbenannt; bis dahin zeigt
-das Panel eine Vorschau. Danach öffnet `/navigator` das Panel.
+Claude reads your chats and sidebar groups, proposes areas, writes the settings file and plans numbers for the
+existing chats. Titles are only renamed after your yes; until then the pane shows a preview. After that,
+`/navigator` opens the pane.
 
-## Einstellungen
+## Settings
 
-### Zentrale Datei (alle Projekte)
+### Central file (all projects)
 
-`~/.claude/chat-navigator/config.json`, optional. Fehlt sie, gilt alles wie unten vorgegeben.
-Beispiel: [examples/config.json](examples/config.json).
+`~/.claude/chat-navigator/config.json`, optional. Without it, the defaults below apply.
+Example: [examples/config.json](examples/config.json).
 
-| Feld | Standard | Bedeutung |
+| Field | Default | Meaning |
 | --- | --- | --- |
-| `statusbar` | `true` | Eintrag in der Statusleiste unten an oder aus (farbige Zeichen: 🟠 wartet, 🔵 neu, 🟢 arbeitet). |
-| `crab` | `false` | Solange ein anderer Chat auf dich wartet, steht unten statt des Texts nur `🦀 2` (Zahl der Wartenden), und der Krebs läuft hin und her. |
-| `band` | `"offen"` | Zeile über dem Eingabefeld: `"aus"`, `"offen"` (nur wenn etwas wartet, neu ist oder arbeitet) oder `"immer"`. |
-| `settings` | siehe unten | Vorgaben für alle Projekte; eine Projektdatei überschreibt sie einzeln. |
+| `language` | `"en"` | Language of the user interface: `"en"` or `"de"`. |
+| `statusbar` | `true` | Status bar entry on or off (coloured marks: 🟠 waiting, 🔵 new, 🟢 working). |
+| `crab` | `false` | While another chat waits for you, the status bar shows only `🦀 2` (number of waiting chats) and the crab runs back and forth. |
+| `band` | `"active"` | Line above the prompt: `"off"`, `"active"` (only while something waits, is new or works) or `"always"`. |
+| `settings` | see below | Defaults for all projects; a project file overrides them one by one. |
 
-### Projektdateien
+### Project files
 
-Eine Datei je Projekt in `~/.claude/chat-navigator/<name>.json`. Ein Beispiel liegt in
-[examples/beispiel.json](examples/beispiel.json).
+One file per project in `~/.claude/chat-navigator/<name>.json`. Example:
+[examples/project.json](examples/project.json).
 
-| Feld | Pflicht | Bedeutung |
+| Field | Required | Meaning |
 | --- | --- | --- |
-| `project` | ja | Absoluter Pfad des Projektordners. Chats in diesem Ordner und darunter gehören dazu; bei verschachtelten Projekten gewinnt der längste Pfad. |
-| `areas` | ja | Bereiche mit `id` (zwei Ziffern), `name`, `subs` (Unterordner, `id` wie `01-02`) und optional `group`: der genaue Name des Seitenleisten-Ordners für diesen Bereich. |
-| `name` | nein | Überschrift im Panel. |
-| `register` | nein | Geplante oder vergebene Nummern: `"01-02-03": { "session": "<id>", "title": "<alter Titel>" }`. Der Navigator ergänzt es selbst. |
-| `archive` | nein | Ablage: `area` (Standard `99`) und `sessions` (IDs von Chats ohne Nummer, die dorthin gehören). |
-| `runs` | nein | Automatische Läufe: `area` (Standard `90`) und `patterns` (Textstücke im Titel). |
-| `settings` | nein | `staleDays` (14), `recent` (10), `pollMinutes` (1), `waitingHours` (48), `autoFix` (`true`: Nummern selbst vergeben; `false`: nur melden). |
+| `project` | yes | Absolute path of the project folder. Chats in this folder and below belong to it; with nested projects, the longest path wins. |
+| `areas` | yes | Areas with `id` (two digits), `name`, `subs` (sub-folders, `id` like `01-02`) and optionally `group`: the exact name of the sidebar group for this area. |
+| `name` | no | Heading in the pane. |
+| `register` | no | Planned or assigned numbers: `"01-02-03": { "session": "<id>", "title": "<old title>" }`. The navigator updates it automatically. |
+| `archive` | no | Archive: `area` (default `99`) and `sessions` (ids of chats without a number that belong there). |
+| `runs` | no | Scheduled runs: `area` (default `90`) and `patterns` (text found in their titles). |
+| `settings` | no | `staleDays` (14), `recent` (10), `pollMinutes` (1), `waitingHours` (48), `autoFix` (`true`: assign numbers automatically; `false`: only report). |
 
-Seitenleisten-Ordner gelten für alle Projekte gemeinsam. Ohne `group` erwartet der Navigator einen Ordner,
-der mit der Bereichsnummer beginnt (z. B. `01 Planung`). Wer mehrere Projekte ordnet, gibt jedem Bereich
-mit `group` einen eigenen Ordner (z. B. `Garten · 01 Planung`).
+Sidebar groups are shared by all projects. Without `group`, the navigator expects a group whose name starts
+with the area number (e.g. `01 Planning`). If you organise several projects, give each area its own group with
+`group` (e.g. `Garden · 01 Planning`).
 
-## Voraussetzungen und Grenzen
+## Requirements and limits
 
-- Nur in der Claude Desktop-App: Der Navigator braucht deren Dienste für Chats und Seitenleiste.
-- macOS: Chats werden mit dem Systembefehl `open` geöffnet.
-- Mehrere Chats eines Projekts können gleichzeitig ordnen; eine Sperre im gemeinsamen Speicher verhindert das
-  meist, ist aber nicht atomar. Das Register überschreibt nie eine Nummer, die schon einem anderen Chat gehört.
-- Bei mehr als 300 Chats vergibt der Navigator keine Nummern selbst, weil ältere Chats fehlen könnten.
-- Die App liefert höchstens 300 Chats auf einmal; ältere fehlen im Baum.
-- «Wartet auf dich» ist eine Schätzung: der letzte Beitrag von Claude endet mit einer Frage.
+- Claude desktop app only: the navigator needs its services for chats and the sidebar.
+- macOS: chats are opened with the system command `open`.
+- The app lists at most 300 chats at once; older ones are missing from the tree. With more than 300 chats,
+  the navigator does not assign numbers automatically, because older chats could be missing.
+- Several chats of a project may try to assign numbers at the same time; a lock in the shared store prevents
+  this in most cases but is not atomic. The register never overwrites a number that belongs to another chat.
+- «Waiting for you» is an estimate: Claude's last message ends with a question.
 
-## Entwicklung
+## Development
 
 ```bash
 claude plugin validate .
@@ -101,19 +106,20 @@ claude plugin validate .
 claude plugin test .
 ```
 
-Zum Ausprobieren ohne Installation: `claude --plugin-dir <dieser Ordner>`. Sobald die App das Plugin einmal
-geladen hat, legt sie die Typen unter `.claude-plugin/types/` ab; dann prüft `tsc -p . --noEmit` die Typen.
+To try it without installing: `claude --plugin-dir <this folder>`. Once the app has loaded the plugin, it
+places the API types in `.claude-plugin/types/`; then `tsc -p . --noEmit` checks the types.
 
-| Datei | Inhalt |
+| File | Contents |
 | --- | --- |
-| [hooks/logic.ts](hooks/logic.ts) | Reine Logik ohne App-Zugriff: Titel, Nummern, Wächter, Projektwahl, Statustext. In [tests/](tests/) abgedeckt. |
-| [hooks/register.tsx](hooks/register.tsx) | Verdrahtung: Ereignisse, Takt, automatisches Öffnen, Neuladen. |
-| [hooks/config.ts](hooks/config.ts) | Einstellungsdateien finden, lesen und das Register ergänzen. |
-| [hooks/app.ts](hooks/app.ts) | Aufrufe an die Dienste der Desktop-App. |
-| [hooks/state.ts](hooks/state.ts) | Zustand des Panels und Merker je Projekt. |
-| [hooks/pane.tsx](hooks/pane.tsx), [hooks/band.tsx](hooks/band.tsx) | Panel und Zeile über dem Eingabefeld. |
-| [skills/setup/SKILL.md](skills/setup/SKILL.md) | Einrichtung mit `/chat-navigator:setup`. |
+| [hooks/logic.ts](hooks/logic.ts) | Pure logic without app access: titles, numbers, guard, project matching, status text. Covered by [tests/](tests/). |
+| [hooks/i18n.ts](hooks/i18n.ts) | All visible texts in English and German. |
+| [hooks/register.tsx](hooks/register.tsx) | Wiring: events, timer, opening automatically, reloading. |
+| [hooks/config.ts](hooks/config.ts) | Finding and reading settings files, adding to the register. |
+| [hooks/app.ts](hooks/app.ts) | Calls to the desktop app's services. |
+| [hooks/state.ts](hooks/state.ts) | Pane state and per-project markers. |
+| [hooks/pane.tsx](hooks/pane.tsx), [hooks/band.tsx](hooks/band.tsx) | Pane and line above the prompt. |
+| [skills/setup/SKILL.md](skills/setup/SKILL.md) | Setup with `/chat-navigator:setup`. |
 
-## Lizenz
+## License
 
-MIT, siehe [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).

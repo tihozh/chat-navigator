@@ -2,11 +2,12 @@ import type { EngineInterface, RenderElement, RenderInput } from 'claude-code'
 
 import type { Area, Chat } from '../types'
 import type { Project } from './config'
+import { findingText, locale, texts } from './i18n'
 import { age, areaOf, isSteering, nextNumber, parse, withPlannedTitles } from './logic'
 import { getNote, getOpen, getSnapshot, markSeen, setNote, setOpen } from './state'
 
-// Das Panel: Dieser Chat, Zuletzt bearbeitet, Bereiche mit Unterordnern, Zu klären.
-// Zeichnet nur; geschrieben wird erst in den Klick-Handlern.
+// The pane: this chat, recently active, areas with sub-folders, to clarify.
+// Draws only; anything is written in the click handlers.
 
 const svg = (body: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`
@@ -15,9 +16,7 @@ const ICONS = {
   open: (c: string) =>
     svg(`<path d="M3 17V7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v1" stroke="${c}"/><path d="M3 17l2.5-6.2A1.5 1.5 0 0 1 6.9 10H21l-3 7.2a1.5 1.5 0 0 1-1.4.8H4.5A1.5 1.5 0 0 1 3 17z" fill="${c}" fill-opacity="0.35" stroke="${c}"/>`),
 }
-const ALT = { folder: 'Ordner', open: 'Ordner offen' }
-
-// Farben (wirken im hellen und dunklen Modus)
+// Colours (work in light and dark mode)
 const C = {
   card: 'rgba(128,128,128,0.08)',
   cardOpen: 'rgba(55,138,221,0.10)',
@@ -46,8 +45,10 @@ export async function renderPane(
   const hint = await getNote($)
   const cfg = snap.config
   const selfId = snap.selfId
+  const lang = snap.lang ?? 'en'
+  const t = texts(lang)
   const now = Date.now()
-  // Schmale Breite: kompakte Liste ohne Rahmen und mit wenig Abstand.
+  // Narrow pane: compact list without borders and with little spacing.
   const compact = (e.props.bodyColumns ?? 120) < 70
   const py = compact ? 0 : 1
 
@@ -55,29 +56,29 @@ export async function renderPane(
 
   const openChat = (chat: Chat) => async () => {
     if (!chat.link.startsWith('claude://')) {
-      await setNote($, `Öffnen nicht möglich: kein App-Link für «${chat.title}»`)
+      await setNote($, t.openFailed(t.noLink(chat.title)))
       return
     }
     try {
       const r = await $.process.run(['open', chat.link])
       if (r.exitCode !== 0) {
-        await setNote($, `Öffnen nicht möglich: «open» meldet Fehler ${r.exitCode}`)
+        await setNote($, t.openFailed(t.openExit(r.exitCode)))
         return
       }
       await markSeen($, deps.project(), chat.id)
       await setNote($, '')
     } catch (err) {
-      await setNote($, `Öffnen nicht möglich: ${(err instanceof Error ? err.message : String(err)).slice(0, 160)}`)
+      await setNote($, t.openFailed((err instanceof Error ? err.message : String(err)).slice(0, 160)))
     }
   }
 
   const copyNumber = (num: string) => async () => {
     await $.ui.copy({ text: `${num} · `, surface: e.surface })
-    await setNote($, `Nummer ${num} kopiert. Als Titelanfang für den neuen Chat verwenden.`)
+    await setNote($, t.copied(num))
   }
 
   const icon = (kind: 'folder' | 'open', color: string, size = 16) =>
-    Svg ? <Svg source={ICONS[kind](color)} alt={ALT[kind]} width={size} height={size} /> : <Text color={color}>{kind === 'open' ? '▾' : '▸'}</Text>
+    Svg ? <Svg source={ICONS[kind](color)} alt={kind === 'open' ? t.folderOpen : t.folder} width={size} height={size} /> : <Text color={color}>{kind === 'open' ? '▾' : '▸'}</Text>
 
   const chip = (text: string, fg: string, bg: string) => (
     <Box backgroundColor={bg} paddingX={1}>
@@ -85,22 +86,22 @@ export async function renderPane(
     </Box>
   )
 
-  // Ohne passendes Projekt: Hinweis auf die Einrichtung statt eines leeren Panels.
+  // No matching project: point to the setup instead of showing an empty pane.
   if (!cfg) {
     return (
       <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
-        <Text weight="semibold" size="title">Chat-Navigator</Text>
+        <Text weight="semibold" size="title">{t.appName}</Text>
         {snap.configError !== '' && <Text color="error">{snap.configError}</Text>}
-        <Text>Für diesen Ordner ist noch kein Projekt eingerichtet.</Text>
-        <Text color={C.gray} size="body">Tippe /chat-navigator:setup, um die Chats dieses Projekts zu ordnen.</Text>
-        <Button key="refresh" plain onPress={deps.refresh} label="↻ Neu laden" />
+        <Text>{t.noProject}</Text>
+        <Text color={C.gray} size="body">{t.setupHint}</Text>
+        <Button key="refresh" plain onPress={deps.refresh} label={t.reload} />
       </Box>
     )
   }
 
   const { chats, planned } = withPlannedTitles(cfg, snap.chats)
 
-  // Eine Chatzeile: Punkt, Nummer, Titel (klickbar), Zeit rechts.
+  // One chat row: dot, number, title (clickable), time on the right.
   const chatRow = (c: Chat, indent: number, showNum = true) => {
     const p = parse(c.title)
     const steer = p ? isSteering(p.num) : false
@@ -113,13 +114,13 @@ export async function renderPane(
           <Button key={`chat:${c.id}`} plain onPress={openChat(c)} label={p ? p.rest : c.title} />
         </Box>
         {c.isRunning ? (
-          <Text color={C.green} size="body">arbeitet</Text>
+          <Text color={C.green} size="body">{t.working}</Text>
         ) : c.isWaiting ? (
-          <Text color={C.amber} size="body">wartet  {age(c.last, now)}</Text>
+          <Text color={C.amber} size="body">{t.waiting}  {age(c.last, now, lang)}</Text>
         ) : c.isNew ? (
-          <Text color={C.blue} size="body">neu  {age(c.last, now)}</Text>
+          <Text color={C.blue} size="body">{t.isNew}  {age(c.last, now, lang)}</Text>
         ) : (
-          <Text color={C.gray} size="body">{age(c.last, now)}</Text>
+          <Text color={C.gray} size="body">{age(c.last, now, lang)}</Text>
         )}
       </Box>
     )
@@ -141,7 +142,7 @@ export async function renderPane(
     const loose = list
       .filter(c => {
         const p = parse(c.title)
-        // Ohne Unterordner oder mit einem, der nicht eingerichtet ist: lose im Bereich zeigen.
+        // Without a sub-folder, or with one that is not configured: show it loose in the area.
         return (!p || !p.sub || !a.subs.some(s => s.id === p.sub)) && !steering.includes(c)
       })
       .sort((x, y) => y.last.localeCompare(x.last))
@@ -163,17 +164,17 @@ export async function renderPane(
           <Box flexGrow={1}>
             <Button key={`area:${a.id}`} plain onPress={toggle(a.id)} label={a.name} />
           </Box>
-          {running > 0 && chip(`${running} arbeitet`, C.green, C.greenBg)}
-          {waitingN > 0 && chip(`${waitingN} wartet`, C.amber, C.amberBg)}
-          {newN > 0 && chip(`${newN} neu`, C.blue, C.newBg)}
-          <Text color={C.gray} size="body">{compact ? list.length : `${list.length} ${list.length === 1 ? 'Chat' : 'Chats'}`}</Text>
+          {running > 0 && chip(t.countWorking(running), C.green, C.greenBg)}
+          {waitingN > 0 && chip(t.countWaiting(waitingN), C.amber, C.amberBg)}
+          {newN > 0 && chip(t.countNew(newN), C.blue, C.newBg)}
+          <Text color={C.gray} size="body">{compact ? list.length : t.chats(list.length)}</Text>
           <Text color={C.gray}>{isOpen ? '⌄' : '›'}</Text>
         </Box>
         {isOpen && (
           <Box flexDirection="column" marginLeft={compact ? 2 : 4} marginTop={py} marginBottom={py}>
             {steering.map(c => chatRow(c, 1))}
             {a.subs.map(s => {
-              const subChats = list.filter(c => parse(c.title)?.sub === s.id).sort((x, y) => x.title.localeCompare(y.title, 'de'))
+              const subChats = list.filter(c => parse(c.title)?.sub === s.id).sort((x, y) => x.title.localeCompare(y.title, locale(lang)))
               const subOpen = expanded.includes(s.id)
               const next = nextNumber(cfg.register, chats, s.id)
               return (
@@ -189,7 +190,7 @@ export async function renderPane(
                   </Box>
                   {subOpen && (
                     <Box flexDirection="column" marginLeft={compact ? 2 : 4}>
-                      {subChats.length === 0 && <Text color={C.gray} size="body">leer</Text>}
+                      {subChats.length === 0 && <Text color={C.gray} size="body">{t.empty}</Text>}
                       {subChats.map(c => chatRow(c, 1))}
                     </Box>
                   )}
@@ -213,61 +214,61 @@ export async function renderPane(
         </Box>
         {snap.findings.length > 0 && (
           <Box backgroundColor={C.amberBg} paddingX={1} marginRight={1}>
-            <Button key="findings" plain onPress={toggle('__findings')} label={`${snap.findings.length} zu klären`} />
+            <Button key="findings" plain onPress={toggle('__findings')} label={t.toClarifyCount(snap.findings.length)} />
           </Box>
         )}
         <Button key="refresh" plain onPress={deps.refresh} label="↻" />
       </Box>
 
-      {snap.error !== '' && <Text color="error">Lesen fehlgeschlagen: {snap.error}</Text>}
+      {snap.error !== '' && <Text color="error">{snap.error}</Text>}
       {snap.configError !== '' && <Text color="error">{snap.configError}</Text>}
       {hint !== '' && <Text color={C.gray} size="body">{hint}</Text>}
 
       {expanded.includes('__findings') && (
         <Box flexDirection="column" borderStyle="round" borderColor={C.amber} backgroundColor={C.amberBg} paddingX={1} marginBottom={1}>
-          <Text weight="semibold" color={C.amber}>Zu klären</Text>
+          <Text weight="semibold" color={C.amber}>{t.toClarify}</Text>
           {snap.findings.slice(0, 30).map((f, i) => {
             const c = chats.find(x => x.id === f.chatId)
             return (
               <Box key={`f:${i}`} flexDirection="row" gap={1}>
                 <Box width={16}>
-                  <Text color={C.gray} size="body">{f.kind}</Text>
+                  <Text color={C.gray} size="body">{t.findingLabel[f.kind]}</Text>
                 </Box>
-                {c ? <Button key={`fb:${i}`} plain onPress={openChat(c)} label={f.text} /> : <Text>{f.text}</Text>}
+                {c ? <Button key={`fb:${i}`} plain onPress={openChat(c)} label={findingText(lang, f)} /> : <Text>{findingText(lang, f)}</Text>}
               </Box>
             )
           })}
-          {snap.findings.length > 30 && <Text color={C.gray} size="body">… und {snap.findings.length - 30} weitere</Text>}
-          {snap.fixed.length > 0 && <Text color={C.gray} size="body">Selbst geordnet: {snap.fixed.join(' · ')}</Text>}
+          {snap.findings.length > 30 && <Text color={C.gray} size="body">{t.andMore(snap.findings.length - 30)}</Text>}
+          {snap.fixed.length > 0 && <Text color={C.gray} size="body">{t.numbered(snap.fixed)}</Text>}
         </Box>
       )}
 
       {planned > 0 && (
         <Box backgroundColor={C.amberBg} paddingX={1} marginBottom={1}>
-          <Text color={C.amber} size="body">Vorschau: {planned} Chats zeigen ihre geplante Nummer, die Titel sind noch nicht umbenannt.</Text>
+          <Text color={C.amber} size="body">{t.preview(planned)}</Text>
         </Box>
       )}
 
       {current && (
         <Box flexDirection="column" borderStyle="round" borderColor={C.blue} backgroundColor={C.cardOpen} paddingX={1} marginBottom={1}>
-          <Text color={C.blue} weight="semibold" size="body">Dieser Chat</Text>
+          <Text color={C.blue} weight="semibold" size="body">{t.thisChat}</Text>
           <Box flexDirection="row" gap={1} alignItems="center">
             {p && <Text mono weight="semibold">{p.num}</Text>}
             <Text weight="semibold">{p ? p.rest : current.title}</Text>
           </Box>
-          {current.group !== '' && <Text color={C.gray} size="body">Ordner: {current.group}</Text>}
+          {current.group !== '' && <Text color={C.gray} size="body">{t.inGroup(current.group)}</Text>}
         </Box>
       )}
 
       <Box marginTop={py} marginBottom={py}>
-        <Text color={C.gray} weight="semibold" size="body">Zuletzt bearbeitet</Text>
+        <Text color={C.gray} weight="semibold" size="body">{t.recent}</Text>
       </Box>
       <Box flexDirection="column" marginBottom={1} marginTop={0}>
         {recent.map(c => chatRow(c, 0))}
       </Box>
 
       <Box marginTop={py} marginBottom={py}>
-        <Text color={C.gray} weight="semibold" size="body">Bereiche</Text>
+        <Text color={C.gray} weight="semibold" size="body">{t.areas}</Text>
       </Box>
       {areas.map(a => areaCard(a))}
 
@@ -275,7 +276,7 @@ export async function renderPane(
         <Box flexDirection="column" marginBottom={1}>
           <Box flexDirection="row" alignItems="center" borderStyle="round" borderColor={C.amber} paddingX={1} gap={1}>
             <Box flexGrow={1}>
-              <Button key="area:__none" plain onPress={toggle('__none')} label="Ohne Nummer" />
+              <Button key="area:__none" plain onPress={toggle('__none')} label={t.noNumber} />
             </Box>
             {chip(String(unplaced.length), C.amber, C.amberBg)}
           </Box>
@@ -288,13 +289,13 @@ export async function renderPane(
       )}
 
       <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={1}>
-        <Text color={C.green} size="body">● arbeitet</Text>
-        <Text color={C.amber} size="body">● wartet auf dich</Text>
-        <Text color={C.blue} size="body">● neu</Text>
-        <Text color={C.violet} size="body">◆ Steuerchat</Text>
-        <Text color={C.gray} size="body">● nichts offen</Text>
+        <Text color={C.green} size="body">● {t.working}</Text>
+        <Text color={C.amber} size="body">● {t.waitingForYou}</Text>
+        <Text color={C.blue} size="body">● {t.isNew}</Text>
+        <Text color={C.violet} size="body">◆ {t.steering}</Text>
+        <Text color={C.gray} size="body">● {t.nothingOpen}</Text>
         <Text color={C.gray} size="body">
-          · Stand {snap.at ? new Date(snap.at).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) : '–'}
+          {t.updated(snap.at ? new Date(snap.at).toLocaleTimeString(locale(lang), { hour: '2-digit', minute: '2-digit' }) : '–')}
         </Text>
       </Box>
     </Box>

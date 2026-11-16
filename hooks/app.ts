@@ -2,9 +2,9 @@ import type { EngineInterface } from 'claude-code'
 
 import type { Chat, Finding } from '../types'
 import type { Action, Group } from './logic'
-import { doneText, failedFinding, savedResultPath, toChats } from './logic'
+import { failedFinding, savedResultPath, toChats } from './logic'
 
-// Aufrufe an die App-Dienste der Desktop-App (ccd_session_mgmt, ccd_sidebar).
+// Calls to the services of the desktop app (ccd_session_mgmt, ccd_sidebar).
 
 type Res = { content: Array<{ type: string; text?: string }>; isError?: boolean }
 
@@ -12,7 +12,7 @@ async function call($: EngineInterface, server: string, tool: string, args: Reco
   try {
     return (await $.mcp.call(server, tool, args)) as Res
   } catch {
-    // Beim Chatstart ist der App-Dienst oft noch nicht verbunden: verbinden und erneut versuchen.
+    // When a chat starts, the app service is often not connected yet: connect and try again.
     await $.mcp.connect(server)
     return (await $.mcp.call(server, tool, args)) as Res
   }
@@ -21,8 +21,8 @@ async function call($: EngineInterface, server: string, tool: string, args: Reco
 export async function callText($: EngineInterface, server: string, tool: string, args: Record<string, unknown>): Promise<string> {
   const res = await call($, server, tool, args)
   let text = res.content.map(b => (b.type === 'text' ? (b.text ?? '') : '')).join('')
-  // Grosse Antworten legt die App in einer Datei ab und nennt nur den Pfad. Gelesen wird nur ein solcher
-  // Hinweis (kurze Antwort, Datei im Ergebnisordner der App), nie ein Pfad, der irgendwo in Titeln steht.
+  // The app saves large responses to a file and only names the path. Only such a notice is followed
+  // (short, file in the app's results folder), never a path that appears somewhere in a title.
   const saved = savedResultPath(text, (await $.env.get('HOME')) ?? '')
   if (saved) text = await $.fs.read(saved)
   if (res.isError) throw new Error(text.slice(0, 200))
@@ -39,8 +39,8 @@ export async function getSelf($: EngineInterface): Promise<Row> {
   return (await callJson($, 'ccd_session_mgmt', 'get_session', { session_id: 'self' })) as Row
 }
 
-// Alle Chats des Projekts, der eigene Chat immer dabei. list_sessions liefert höchstens 300 Chats;
-// `complete` ist false, wenn die Liste voll ist und ältere Chats fehlen können.
+// All chats of the project, the current chat always included. list_sessions returns at most 300 chats;
+// `complete` is false when the list is full and older chats may be missing.
 export const MAX_SESSIONS = 300
 export async function listChats(
   $: EngineInterface,
@@ -62,19 +62,17 @@ export async function listEvents($: EngineInterface, sessionId: string): Promise
   return callText($, 'ccd_session_mgmt', 'list_events', { session_id: sessionId, limit: 8 })
 }
 
-// Geplante Schritte ausführen; was scheitert, wird zum Befund.
-export async function runActions($: EngineInterface, actions: Action[]): Promise<{ done: Action[]; fixed: string[]; failed: Finding[] }> {
+// Carry out the planned renames; whatever fails becomes a finding.
+export async function runActions($: EngineInterface, actions: Action[]): Promise<{ done: Action[]; failed: Finding[] }> {
   const done: Action[] = []
-  const fixed: string[] = []
   const failed: Finding[] = []
   for (const a of actions) {
     try {
       await callText($, 'ccd_session_mgmt', 'set_session_title', { session_id: a.chatId, title: a.title })
       done.push(a)
-      fixed.push(doneText(a))
     } catch (err) {
-      failed.push(failedFinding(a, err instanceof Error ? err.message : String(err)))
+      failed.push(failedFinding(a, { code: 'error', message: err instanceof Error ? err.message : String(err) }))
     }
   }
-  return { done, fixed, failed }
+  return { done, failed }
 }

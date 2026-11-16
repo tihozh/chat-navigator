@@ -1,9 +1,17 @@
+export type Lang = 'en' | 'de'
+
+// A problem in a project file, shown in the configured language.
+export type ConfigError =
+  | { code: 'notObject' | 'noProject' | 'noAreas' | 'badAreaId' | 'badRegister' }
+  | { code: 'dupArea' | 'badSubId' | 'dupSub' | 'badGroup'; area: string }
+  | { code: 'badRegisterNum' | 'noSession'; num: string }
+
 export type Sub = { id: string; name: string }
 
-// `group`: eigener Seitenleisten-Ordner dieses Bereichs (genauer Name). Ohne: ein Ordner «NN …».
+// `group`: the area's own sidebar group (exact name). Without it, a group named «NN …» is expected.
 export type Area = { id: string; name: string; subs: Sub[]; group?: string }
 
-// Geprüfte Einstellungen eines Projekts (aus ~/.claude/chat-navigator/<name>.json).
+// Validated settings of one project (from ~/.claude/chat-navigator/<name>.json).
 export type Config = {
   name: string
   project: string
@@ -27,19 +35,34 @@ export type Chat = {
   isNew?: boolean
 }
 
-export type Finding = { kind: string; text: string; chatId: string }
+// Why the navigator did not assign a number itself.
+export type ReasonCode = 'autoFixOff' | 'incomplete' | 'paneInactive' | 'locked' | 'error'
+export type Reason = { code: ReasonCode; message?: string }
 
-export type BandItem = { id: string; num: string; title: string; link: string; state: 'wartet' | 'neu' | 'arbeitet' }
+// Findings are stored as data and turned into text when drawn, in the configured language.
+export type Finding =
+  | { kind: 'noNumber'; chatId: string; title: string; reason?: Reason }
+  | { kind: 'numbersFull'; chatId: string; title: string; sub: string }
+  | { kind: 'missingGroup' | 'unclearGroup' | 'wrongGroup'; chatId: string; title: string; group: string }
+  | { kind: 'duplicate'; chatId: string; title: string; other: string }
+  | { kind: 'duplicateRegister'; chatId: string; num: string }
+  | { kind: 'stale'; chatId: string; title: string; days: number }
 
-// `mode`: wann die Zeile über dem Eingabefeld erscheint (aus der zentralen Datei; nur im eigenen Chat gesetzt).
-export type BandMode = 'aus' | 'offen' | 'immer'
-export type Band = { at: string; items: BandItem[]; mode?: BandMode }
+export type FindingKind = Finding['kind']
 
-// Zentrale Datei ~/.claude/chat-navigator/config.json: gilt für alle Projekte.
-// `crab`: ein Krebs läuft über die Statusleiste, solange jemand wartet.
-export type Global = { statusbar: boolean; crab: boolean; band: BandMode; settings: Config['settings'] }
+export type BandState = 'waiting' | 'new' | 'working'
+export type BandItem = { id: string; num: string; title: string; link: string; state: BandState }
 
-// Stand des Panels. `config` ist null, solange kein Projekt passt; `configError` sagt dann warum.
+// `mode` and `lang` come from the central file and are set in the own chat only.
+export type BandMode = 'off' | 'active' | 'always'
+export type Band = { at: string; items: BandItem[]; mode?: BandMode; lang?: Lang }
+
+// Central file ~/.claude/chat-navigator/config.json: applies to all projects.
+// `crab`: while another chat waits, a running crab replaces the status bar text.
+export type Global = { language: Lang; statusbar: boolean; crab: boolean; band: BandMode; settings: Config['settings'] }
+
+// State of the pane. `config` is null while no project matches; `configError` says why.
+// `fixed` holds the new titles of chats that got a number in the last pass.
 export type Snapshot = {
   chats: Chat[]
   at: string
@@ -49,6 +72,7 @@ export type Snapshot = {
   selfId: string
   config: Config | null
   configError: string
+  lang: Lang
 }
 
 declare module 'claude-code' {

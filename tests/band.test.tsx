@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 
 import type { Band } from '../types'
 
-// Erfundene Daten: die Zeile über dem Eingabefeld in ihren drei Modi.
+// Made-up data: the line above the prompt in its three modes.
 
 const BAND = {
   plugin: 'chat-navigator',
@@ -11,37 +11,44 @@ const BAND = {
 } as const
 
 const at = new Date().toISOString()
-const waiting: Band = { at, items: [{ id: 'x', num: '01-01-02', title: 'Gurken', link: 'claude://x', state: 'wartet' }] }
+const waiting: Band = { at, items: [{ id: 'x', num: '01-01-02', title: 'Gurken', link: 'claude://x', state: 'waiting' }] }
 
-// Antwort auf state.get: die Zeile bekommt `b`, alles andere ist leer.
+// Answer to state.get: the band gets `b`, everything else is empty.
 const bandGet = (b: Band) => (_: unknown, e: { key: string }) =>
-  e.key === 'band' ? { value: { value: { shape: 'band-1', value: b }, version: 1 } } : { value: { value: undefined, version: 0 } }
+  e.key === 'band' ? { value: { value: { shape: 'band-2', value: b }, version: 1 } } : { value: { value: undefined, version: 0 } }
 
 for (const surface of ['terminal', 'desktop'] as const) {
-  test(`${surface}: Modus «offen» zeigt Wartende`, async ($, on) => {
-    on('state.get', bandGet({ ...waiting, mode: 'offen' }))
+  test(`${surface}: mode «active» shows waiting chats`, async ($, on) => {
+    on('state.get', bandGet({ ...waiting, mode: 'active' }))
     const ui = await $.ui.mount({ ...BAND, surface })
-    expect(await ui.find({ type: 'Text', text: 'Wartet:' })).toBeTruthy()
+    expect(await ui.find({ type: 'Text', text: 'Waiting:' })).toBeTruthy()
     await ui.unmount()
   })
 
-  test(`${surface}: Modus «aus» zeigt nichts vom Navigator`, async ($, on) => {
-    on('state.get', bandGet({ ...waiting, mode: 'aus' }))
-    // Steht für die App: was sie ohne den Navigator zeichnen würde.
+  test(`${surface}: mode «off» leaves the line to the app`, async ($, on) => {
+    on('state.get', bandGet({ ...waiting, mode: 'off' }))
+    // Stands for the app: what it draws without the navigator.
     on('ui.render', ($, e) => {
       const { Text } = $.ui.resolve(e)
       return <Text>App</Text>
     })
     const ui = await $.ui.mount({ ...BAND, surface })
-    expect(await ui.find({ type: 'Text', text: 'Wartet:' })).toBe(undefined)
+    expect(await ui.find({ type: 'Text', text: 'Waiting:' })).toBe(undefined)
     expect(await ui.find({ type: 'Text', text: 'App' })).toBeTruthy()
     await ui.unmount()
   })
 
-  test(`${surface}: Modus «immer» meldet auch, wenn nichts offen ist`, async ($, on) => {
-    on('state.get', bandGet({ at, items: [], mode: 'immer' }))
+  test(`${surface}: mode «always» also shows when nothing is open`, async ($, on) => {
+    on('state.get', bandGet({ at, items: [], mode: 'always' }))
     const ui = await $.ui.mount({ ...BAND, surface })
-    expect(await ui.find({ type: 'Text', text: /nichts offen/ })).toBeTruthy()
+    expect(await ui.find({ type: 'Text', text: /nothing open/ })).toBeTruthy()
     await ui.unmount()
   })
 }
+
+test('the line speaks German when configured', async ($, on) => {
+  on('state.get', bandGet({ ...waiting, mode: 'active', lang: 'de' }))
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await ui.find({ type: 'Text', text: 'Wartet:' })).toBeTruthy()
+  await ui.unmount()
+})
