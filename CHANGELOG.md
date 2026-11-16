@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+- «Clean up» is always visible; with nothing to do it says so.
+
 ## 0.6.0
 
 - Search: filters all chats by title or number while you type.

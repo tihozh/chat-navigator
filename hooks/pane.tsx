@@ -234,9 +234,9 @@ export async function renderPane(
             <Button key="week" plain onPress={toggle('__week')} label={t.week} />
           </Box>
         )}
-        {candidates.length > 0 && (
+        {features.cleanup && (
           <Box marginRight={1}>
-            <Button key="cleanup" plain onPress={toggle('__cleanup')} label={t.cleanup(candidates.length)} />
+            <Button key="cleanup" plain onPress={toggle('__cleanup')} label={candidates.length > 0 ? t.cleanup(candidates.length) : t.cleanupLabel} />
           </Box>
         )}
         {snap.findings.length > 0 && (
@@ -272,6 +272,12 @@ export async function renderPane(
               <Text color={C.gray} size="body">{t.weekRow(r)}</Text>
             </Box>
           ))}
+        </Box>
+      )}
+
+      {features.cleanup && expanded.includes('__cleanup') && candidates.length === 0 && (
+        <Box borderStyle="round" borderColor={C.gray} paddingX={1} marginBottom={1}>
+          <Text color={C.gray} size="body">{t.cleanupNothing(cfg.settings.staleDays)}</Text>
         </Box>
       )}
 

@@ -117,3 +117,13 @@ test('week and cleanup sections open', async ($, on) => {
   expect((await ui.find({ key: 'cleanup-go' }))?.text).toBe('1 in die Ablage')
   await ui.unmount()
 })
+
+test('clean up stays visible when there is nothing to do', async ($, on) => {
+  const s = snap('de')
+  on('state.get', stateGet({ ...s, chats: s.chats.filter(c => c.id !== 'z') }, '', ['__cleanup']))
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect((await ui.find({ key: 'cleanup' }))?.text).toBe('Aufräumen')
+  expect(await ui.find({ type: 'Text', text: /Nichts aufzuräumen/ })).toBeTruthy()
+  expect(await ui.find({ key: 'cleanup-go' })).toBe(undefined)
+  await ui.unmount()
+})
