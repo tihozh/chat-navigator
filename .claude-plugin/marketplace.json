@@ -1,0 +1,6 @@
+{
+  "name": "chat-navigator",
+  "owner": { "name": "tihozh", "url": "https://github.com/tihozh" },
+  "description": "Chat-Navigator für die Claude Desktop-App",
+  "plugins": [{ "name": "chat-navigator", "source": "./" }]
+}

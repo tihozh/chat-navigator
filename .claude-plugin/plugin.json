@@ -1,0 +1,11 @@
+{
+  "name": "chat-navigator",
+  "version": "0.4.0",
+  "description": "Zeigt die Chats eines Projekts als nummerierten Baum in einem Panel, vergibt Nummern und meldet, was zu klären ist (Claude Desktop-App)",
+  "author": { "name": "tihozh", "url": "https://github.com/tihozh" },
+  "homepage": "https://github.com/tihozh/chat-navigator",
+  "repository": "https://github.com/tihozh/chat-navigator",
+  "license": "MIT",
+  "keywords": ["chats", "navigation", "sessions", "panel", "desktop"],
+  "types": "./types/index.d.ts"
+}
