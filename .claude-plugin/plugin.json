@@ -1,6 +1,6 @@
 {
   "name": "chat-navigator",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Shows the chats of a project as a numbered tree in a side pane, assigns numbers and reports what needs attention (Claude desktop app)",
   "icon": "./.claude-plugin/icon.png",
   "author": {
@@ -9,6 +9,9 @@
   },
   "homepage": "https://github.com/tihozh/chat-navigator",
   "repository": "https://github.com/tihozh/chat-navigator",
+  "documentationUrl": "https://github.com/tihozh/chat-navigator#readme",
+  "supportUrl": "https://github.com/tihozh/chat-navigator/issues",
+  "privacyPolicyUrl": "https://github.com/tihozh/chat-navigator#what-the-plugin-does-on-your-computer",
   "license": "MIT",
   "keywords": [
     "chats",

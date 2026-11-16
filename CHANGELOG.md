@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.3
+
+- Links for the plugin directory: documentation, support (issues) and privacy (README section).
+
 ## 0.9.2
 
 - For the plugin directory: the current chat is read with a direct call at each place instead of a helper.
