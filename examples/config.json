@@ -3,5 +3,16 @@
   "statusbar": true,
   "crab": false,
   "band": "active",
-  "settings": { "staleDays": 14, "recent": 10, "pollMinutes": 1, "waitingHours": 48, "autoFix": true }
+  "features": {
+    "search": true,
+    "week": true,
+    "cleanup": true
+  },
+  "settings": {
+    "staleDays": 14,
+    "recent": 10,
+    "pollMinutes": 1,
+    "waitingHours": 48,
+    "autoFix": true
+  }
 }

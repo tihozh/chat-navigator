@@ -4,18 +4,30 @@ import type { EngineInterface } from 'claude-code'
 import type { Band, BandMode, Chat, Lang, Snapshot } from '../types'
 import type { Project } from './config'
 import { listEvents } from './app'
-import { endsWithQuestion, toBandItems, updateSeen } from './logic'
+import { ALL_FEATURES, endsWithQuestion, toBandItems, updateSeen } from './logic'
 
 // Values the pane and the band draw ($.state), and markers shared across chats ($.store).
 
 export const PANE = 'chat-navigator'
 
-const EMPTY: Snapshot = { chats: [], at: '', error: '', findings: [], fixed: [], selfId: '', config: null, configError: '', lang: 'en' }
+const EMPTY: Snapshot = {
+  chats: [],
+  at: '',
+  error: '',
+  findings: [],
+  fixed: [],
+  selfId: '',
+  config: null,
+  configError: '',
+  lang: 'en',
+  features: ALL_FEATURES,
+}
 
-const snapshot = atom({ plugin: 'chat-navigator', key: 'snapshot' } as const, EMPTY, { shape: 'snapshot-4' })
+const snapshot = atom({ plugin: 'chat-navigator', key: 'snapshot' } as const, EMPTY, { shape: 'snapshot-5' })
 const open = atom({ plugin: 'chat-navigator', key: 'open' } as const, [] as string[], { shape: 'open-3' })
 const band = atom({ plugin: 'chat-navigator', key: 'band' } as const, { at: '', items: [] } as Band, { shape: 'band-2' })
 const note = atom({ plugin: 'chat-navigator', key: 'note' } as const, '')
+const query = atom({ plugin: 'chat-navigator', key: 'query' } as const, '')
 
 // Read (also while drawing) and write (only from clicks and events, never while drawing).
 // The app's checker requires read/update to see their atoms in the same file, hence these helpers.
@@ -31,6 +43,9 @@ export function getBand($: EngineInterface) {
 export function getNote($: EngineInterface) {
   return read($, note)
 }
+export function getQuery($: EngineInterface) {
+  return read($, query)
+}
 export function setSnapshot($: EngineInterface, fn: (s: Snapshot) => Snapshot) {
   return update($, snapshot, fn)
 }
@@ -42,6 +57,9 @@ export function setBand($: EngineInterface, fn: (b: Band) => Band) {
 }
 export function setNote($: EngineInterface, text: string) {
   return update($, note, () => text)
+}
+export function setQuery($: EngineInterface, text: string) {
+  return update($, query, () => text)
 }
 
 // Keys in the shared store, separate per project. The shared band carries no mode or language:

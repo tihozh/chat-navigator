@@ -3,8 +3,8 @@ import type { EngineInterface, RenderElement, RenderInput } from 'claude-code'
 import type { Area, Chat } from '../types'
 import type { Project } from './config'
 import { findingText, locale, texts } from './i18n'
-import { age, areaOf, isSteering, nextNumber, parse, withPlannedTitles } from './logic'
-import { getNote, getOpen, getSnapshot, markSeen, setNote, setOpen } from './state'
+import { ALL_FEATURES, age, areaOf, cleanupCandidates, isSteering, nextNumber, parse, searchChats, weekSummary, withPlannedTitles } from './logic'
+import { getNote, getOpen, getQuery, getSnapshot, markSeen, setNote, setOpen, setQuery } from './state'
 
 // The pane: this chat, recently active, areas with sub-folders, to clarify.
 // Draws only; anything is written in the click handlers.
@@ -35,17 +35,20 @@ const C = {
 export async function renderPane(
   $: EngineInterface,
   e: RenderInput<'Pane'>,
-  deps: { refresh: () => Promise<void>; project: () => Project | null },
+  deps: { refresh: () => Promise<void>; project: () => Project | null; archive: (ids: string[]) => Promise<number> },
 ): Promise<RenderElement> {
   const ui = $.ui.resolve(e)
-  const { Box, Text, Button } = ui
+  const { Box, Text, Button, Input } = ui
   const Svg = 'Svg' in ui ? ui.Svg : null
   const snap = await getSnapshot($)
   const expanded = await getOpen($)
   const hint = await getNote($)
+  const rawQuery = await getQuery($)
+  const query = rawQuery.trim()
   const cfg = snap.config
   const selfId = snap.selfId
   const lang = snap.lang ?? 'en'
+  const features = snap.features ?? ALL_FEATURES
   const t = texts(lang)
   const now = Date.now()
   // Narrow pane: compact list without borders and with little spacing.
@@ -128,7 +131,21 @@ export async function renderPane(
 
   const recent = [...chats].sort((a, b) => b.last.localeCompare(a.last)).slice(0, cfg.settings.recent)
   const current = chats.find(c => c.id === selfId)
-  const areas = cfg.areas
+  // Archive and runs show as areas of their own when chats are there, even if they are not configured.
+  const extra: Area[] = [
+    { id: cfg.archive.area, name: t.archiveArea, subs: [] },
+    { id: cfg.runs.area, name: t.runsArea, subs: [] },
+  ].filter(x => !cfg.areas.some(a => a.id === x.id) && chats.some(c => areaOf(cfg, c) === x.id))
+  const areas = [...cfg.areas, ...extra]
+  const results = features.search && query !== '' ? searchChats(chats, query) : null
+  const candidates = features.cleanup ? cleanupCandidates(cfg, chats, selfId, now) : []
+  const week = features.week && expanded.includes('__week') ? weekSummary(cfg, chats, now) : null
+
+  const archiveAll = async () => {
+    const n = await deps.archive(candidates.map(c => c.id))
+    await setOpen($, list => list.filter(k => k !== '__cleanup'))
+    await setNote($, t.cleanupDone(n))
+  }
   const inArea = (a: Area) => chats.filter(c => areaOf(cfg, c) === a.id)
   const unplaced = chats.filter(c => !areas.some(a => areaOf(cfg, c) === a.id))
 
@@ -212,6 +229,16 @@ export async function renderPane(
         <Box flexGrow={1}>
           <Text weight="semibold" size={compact ? 'heading' : 'title'}>{cfg.name}</Text>
         </Box>
+        {features.week && (
+          <Box marginRight={1}>
+            <Button key="week" plain onPress={toggle('__week')} label={t.week} />
+          </Box>
+        )}
+        {candidates.length > 0 && (
+          <Box marginRight={1}>
+            <Button key="cleanup" plain onPress={toggle('__cleanup')} label={t.cleanup(candidates.length)} />
+          </Box>
+        )}
         {snap.findings.length > 0 && (
           <Box backgroundColor={C.amberBg} paddingX={1} marginRight={1}>
             <Button key="findings" plain onPress={toggle('__findings')} label={t.toClarifyCount(snap.findings.length)} />
@@ -223,6 +250,42 @@ export async function renderPane(
       {snap.error !== '' && <Text color="error">{snap.error}</Text>}
       {snap.configError !== '' && <Text color="error">{snap.configError}</Text>}
       {hint !== '' && <Text color={C.gray} size="body">{hint}</Text>}
+
+      {features.search && (
+        <Box marginBottom={1}>
+          <Input key="search" placeholder={t.searchPlaceholder} submitLabel={t.searchSubmit} value={rawQuery} onInput={v => void setQuery($, v)} onSubmit={v => void setQuery($, v)} />
+        </Box>
+      )}
+
+      {week && (
+        <Box flexDirection="column" borderStyle="round" borderColor={C.blue} paddingX={1} marginBottom={1}>
+          <Text weight="semibold" color={C.blue}>{t.weekTitle}</Text>
+          {week.length === 0 && <Text color={C.gray} size="body">{t.weekEmpty}</Text>}
+          {week.map(r => (
+            <Box key={`w:${r.area || 'none'}`} flexDirection="row" gap={1}>
+              <Box width={4}>
+                <Text mono color={C.gray} size="body">{r.area || '··'}</Text>
+              </Box>
+              <Box flexGrow={1}>
+                <Text size="body">{r.area ? r.name : t.weekOther}</Text>
+              </Box>
+              <Text color={C.gray} size="body">{t.weekRow(r)}</Text>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {features.cleanup && expanded.includes('__cleanup') && candidates.length > 0 && (
+        <Box flexDirection="column" borderStyle="round" borderColor={C.gray} paddingX={1} marginBottom={1}>
+          <Text weight="semibold">{t.cleanupTitle(candidates.length, cfg.settings.staleDays)}</Text>
+          {candidates.slice(0, 20).map(c => chatRow(c, 0))}
+          {candidates.length > 20 && <Text color={C.gray} size="body">{t.andMore(candidates.length - 20)}</Text>}
+          <Text color={C.gray} size="body">{t.cleanupHint}</Text>
+          <Box marginTop={1}>
+            <Button key="cleanup-go" onPress={archiveAll} label={t.cleanupButton(candidates.length)} />
+          </Box>
+        </Box>
+      )}
 
       {expanded.includes('__findings') && (
         <Box flexDirection="column" borderStyle="round" borderColor={C.amber} backgroundColor={C.amberBg} paddingX={1} marginBottom={1}>
@@ -260,31 +323,44 @@ export async function renderPane(
         </Box>
       )}
 
-      <Box marginTop={py} marginBottom={py}>
-        <Text color={C.gray} weight="semibold" size="body">{t.recent}</Text>
-      </Box>
-      <Box flexDirection="column" marginBottom={1} marginTop={0}>
-        {recent.map(c => chatRow(c, 0))}
-      </Box>
-
-      <Box marginTop={py} marginBottom={py}>
-        <Text color={C.gray} weight="semibold" size="body">{t.areas}</Text>
-      </Box>
-      {areas.map(a => areaCard(a))}
-
-      {unplaced.length > 0 && (
+      {results ? (
         <Box flexDirection="column" marginBottom={1}>
-          <Box flexDirection="row" alignItems="center" borderStyle="round" borderColor={C.amber} paddingX={1} gap={1}>
-            <Box flexGrow={1}>
-              <Button key="area:__none" plain onPress={toggle('__none')} label={t.noNumber} />
-            </Box>
-            {chip(String(unplaced.length), C.amber, C.amberBg)}
+          <Box marginTop={py} marginBottom={py}>
+            <Text color={C.gray} weight="semibold" size="body">{t.results(results.length)}</Text>
           </Box>
-          {expanded.includes('__none') && (
-            <Box flexDirection="column" marginLeft={2}>
-              {[...unplaced].sort((x, y) => y.last.localeCompare(x.last)).map(c => chatRow(c, 1, false))}
+          {results.length === 0 && <Text color={C.gray} size="body">{t.noResults}</Text>}
+          {results.slice(0, 50).map(c => chatRow(c, 0))}
+          {results.length > 50 && <Text color={C.gray} size="body">{t.andMore(results.length - 50)}</Text>}
+        </Box>
+      ) : (
+        <Box flexDirection="column">
+        <Box marginTop={py} marginBottom={py}>
+          <Text color={C.gray} weight="semibold" size="body">{t.recent}</Text>
+        </Box>
+        <Box flexDirection="column" marginBottom={1} marginTop={0}>
+          {recent.map(c => chatRow(c, 0))}
+        </Box>
+
+        <Box marginTop={py} marginBottom={py}>
+          <Text color={C.gray} weight="semibold" size="body">{t.areas}</Text>
+        </Box>
+        {areas.map(a => areaCard(a))}
+
+        {unplaced.length > 0 && (
+          <Box flexDirection="column" marginBottom={1}>
+            <Box flexDirection="row" alignItems="center" borderStyle="round" borderColor={C.amber} paddingX={1} gap={1}>
+              <Box flexGrow={1}>
+                <Button key="area:__none" plain onPress={toggle('__none')} label={t.noNumber} />
+              </Box>
+              {chip(String(unplaced.length), C.amber, C.amberBg)}
             </Box>
-          )}
+            {expanded.includes('__none') && (
+              <Box flexDirection="column" marginLeft={2}>
+                {[...unplaced].sort((x, y) => y.last.localeCompare(x.last)).map(c => chatRow(c, 1, false))}
+              </Box>
+            )}
+          </Box>
+        )}
         </Box>
       )}
 

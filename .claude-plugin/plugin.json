@@ -1,6 +1,6 @@
 {
   "name": "chat-navigator",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Shows the chats of a project as a numbered tree in a side pane, assigns numbers and reports what needs attention (Claude desktop app)",
   "author": {
     "name": "tihozh",

@@ -57,9 +57,15 @@ export type BandItem = { id: string; num: string; title: string; link: string; s
 export type BandMode = 'off' | 'active' | 'always'
 export type Band = { at: string; items: BandItem[]; mode?: BandMode; lang?: Lang }
 
+// Parts of the pane that can be switched off in config.json.
+export type Features = { search: boolean; week: boolean; cleanup: boolean }
+
 // Central file ~/.claude/chat-navigator/config.json: applies to all projects.
 // `crab`: while another chat waits, a running crab replaces the status bar text.
-export type Global = { language: Lang; statusbar: boolean; crab: boolean; band: BandMode; settings: Config['settings'] }
+export type Global = { language: Lang; statusbar: boolean; crab: boolean; band: BandMode; features: Features; settings: Config['settings'] }
+
+// One line of the weekly review: an area and what happened in it during the last 7 days.
+export type WeekRow = { area: string; name: string; active: number; waiting: number; new: number; working: number }
 
 // State of the pane. `config` is null while no project matches; `configError` says why.
 // `fixed` holds the new titles of chats that got a number in the last pass.
@@ -73,6 +79,7 @@ export type Snapshot = {
   config: Config | null
   configError: string
   lang: Lang
+  features: Features
 }
 
 declare module 'claude-code' {
@@ -81,6 +88,7 @@ declare module 'claude-code' {
       snapshot: Shaped<Snapshot>
       open: Shaped<string[]>
       note: string
+      query: string
       band: Shaped<Band>
     }
   }

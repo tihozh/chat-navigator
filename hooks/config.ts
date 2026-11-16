@@ -69,11 +69,24 @@ export async function projectFor($: EngineInterface, cwd: string): Promise<{ pro
   return { project, global, error }
 }
 
+// All writes to project files in this chat run one after another, so the register and the archive
+// never overwrite each other's change. (Across chats the app offers no lock; see README.)
+let writeQueue: Promise<unknown> = Promise.resolve()
+function serial<T>(job: () => Promise<T>): Promise<T> {
+  const run = writeQueue.then(job, job)
+  writeQueue = run.catch(() => undefined)
+  return run
+}
+
 // Write new register entries to the file. The file is read again first, so changes made by hand or from
 // other chats are kept and other keys stay untouched. A number that already belongs to another chat there
 // is never overwritten (the skipped numbers are returned).
 export async function addToRegister($: EngineInterface, p: Project, add: Config['register']): Promise<string[]> {
   if (Object.keys(add).length === 0) return []
+  return serial(() => writeRegister($, p, add))
+}
+
+async function writeRegister($: EngineInterface, p: Project, add: Config['register']): Promise<string[]> {
   const raw = JSON.parse(await $.fs.read(p.file)) as Record<string, unknown>
   const reg = (raw.register && typeof raw.register === 'object' ? raw.register : {}) as Config['register']
   const skipped: string[] = []
@@ -86,4 +99,23 @@ export async function addToRegister($: EngineInterface, p: Project, add: Config[
   raw.register = merged
   await $.fs.write(p.file, `${JSON.stringify(raw, null, 2)}\n`)
   return skipped
+}
+
+// Put chats into the navigator's archive (`archive.sessions` in the project file). The file is read again
+// first; other keys, and an older `ablage` list, stay untouched. Returns how many ids were new.
+export async function addToArchive($: EngineInterface, p: Project, ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0
+  return serial(() => writeArchive($, p, ids))
+}
+
+async function writeArchive($: EngineInterface, p: Project, ids: string[]): Promise<number> {
+  const raw = JSON.parse(await $.fs.read(p.file)) as Record<string, unknown>
+  const archive = (raw.archive && typeof raw.archive === 'object' ? raw.archive : {}) as Record<string, unknown>
+  const sessions = Array.isArray(archive.sessions) ? archive.sessions.filter((x): x is string => typeof x === 'string') : []
+  const older = Array.isArray(raw.ablage) ? raw.ablage : []
+  const fresh = ids.filter(id => !sessions.includes(id) && !older.includes(id))
+  if (fresh.length === 0) return 0
+  raw.archive = { ...archive, sessions: [...sessions, ...fresh] }
+  await $.fs.write(p.file, `${JSON.stringify(raw, null, 2)}\n`)
+  return fresh.length
 }

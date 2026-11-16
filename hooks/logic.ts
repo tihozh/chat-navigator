@@ -1,7 +1,7 @@
 // Pure logic of the Chat Navigator: no app access, so it is tested directly.
 // Anything that depends on time takes `now` (milliseconds) as an argument.
 
-import type { Area, BandItem, BandMode, BandState, Chat, Config, ConfigError, Finding, Global, Lang, Reason } from '../types'
+import type { Area, BandItem, BandMode, BandState, Chat, Config, ConfigError, Features, Finding, Global, Lang, Reason, WeekRow } from '../types'
 import { LANGS, texts } from './i18n'
 
 // ---------- Titles and numbers ----------
@@ -31,11 +31,12 @@ export function isSteering(num: string): boolean {
   return /^\d{2}(-00)?$/.test(num) || /-00$/.test(num)
 }
 
-// Area of a chat: number in the title, else archive list, run pattern or sidebar group.
+// Area of a chat: archive list first (a cleaned-up chat leaves the tree even with a number),
+// then the number in the title, a run pattern or the sidebar group.
 export function areaOf(cfg: Config | null, c: Pick<Chat, 'id' | 'title' | 'group'>): string {
+  if (cfg?.archive.sessions.includes(c.id)) return cfg.archive.area
   const p = parse(c.title)
   if (p) return p.area
-  if (cfg?.archive.sessions.includes(c.id)) return cfg.archive.area
   if (cfg && isRun(cfg, c.title)) return cfg.runs.area
   const named = cfg?.areas.find(a => a.group !== undefined && a.group === c.group)
   return named ? named.id : groupArea(c.group)
@@ -154,6 +155,14 @@ function bandMode(v: unknown): BandMode {
   return Object.hasOwn(BAND_ALIASES, v) ? (BAND_ALIASES[v] ?? 'active') : 'active'
 }
 
+// Every part of the pane is on unless config.json turns it off with `false`.
+export const ALL_FEATURES: Features = { search: true, week: true, cleanup: true }
+
+function features(v: unknown): Features {
+  const f = isObj(v) ? v : {}
+  return { search: f.search !== false, week: f.week !== false, cleanup: f.cleanup !== false }
+}
+
 // Central file config.json → settings for all projects. Without it, the defaults apply.
 export function normalizeGlobal(raw: unknown): Global {
   const g = isObj(raw) ? raw : {}
@@ -162,6 +171,7 @@ export function normalizeGlobal(raw: unknown): Global {
     statusbar: g.statusbar !== false,
     crab: g.crab === true,
     band: bandMode(g.band),
+    features: features(g.features),
     settings: mergeSettings(g.settings, DEFAULTS),
   }
 }
@@ -267,7 +277,7 @@ export function planGuard(cfg: Config, chats: Chat[], groups: Group[], now: numb
   for (const c of chats) {
     const t = title.get(c.id) ?? c.title
     const p = parse(t)
-    if (!p || inAreaGroup(cfg, c, p.area) || c.parent !== '') continue
+    if (!p || inAreaGroup(cfg, c, p.area) || c.parent !== '' || cfg.archive.sessions.includes(c.id)) continue
     const named = cfg.areas.find(a => a.id === p.area)?.group
     const candidates = named !== undefined ? groups.filter(x => x.name === named) : groups.filter(x => x.name.startsWith(`${p.area} `))
     // Several groups with the same number (e.g. from another project): take the one this project already uses.
@@ -444,6 +454,58 @@ export function withPlannedTitles(cfg: Config | null, chats: Chat[]): { chats: C
     return { ...c, title: t }
   })
   return { chats: out, planned }
+}
+
+// ---------- Search, weekly review, cleanup ----------
+
+// Does a chat match the search? Every word must appear in the title (case-insensitive);
+// a number like «01-02» matches chats whose number starts with it.
+export function matchesQuery(c: Pick<Chat, 'title'>, query: string): boolean {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return true
+  const title = c.title.toLowerCase()
+  const num = parse(c.title)?.num ?? ''
+  return words.every(w => title.includes(w) || (/^\d{2}(-\d{0,2})*$/.test(w) && num.startsWith(w)))
+}
+
+export function searchChats<T extends Pick<Chat, 'title' | 'last'>>(chats: T[], query: string): T[] {
+  return chats.filter(c => matchesQuery(c, query)).sort((a, b) => b.last.localeCompare(a.last))
+}
+
+// What happened in each area during the last 7 days: only chats active in that time count, and of those,
+// how many are waiting, new or working now. Areas without activity are left out;
+// chats outside the configured areas are collected under area ''.
+export const WEEK_DAYS = 7
+export function weekSummary(cfg: Config, chats: Chat[], now: number): WeekRow[] {
+  const rows = new Map<string, WeekRow>()
+  const names = new Map(cfg.areas.map(a => [a.id, a.name]))
+  for (const c of chats) {
+    if (!(daysSince(c.last, now) <= WEEK_DAYS)) continue
+    const id = areaOf(cfg, c)
+    const area = names.has(id) ? id : ''
+    const row = rows.get(area) ?? { area, name: names.get(area) ?? '', active: 0, waiting: 0, new: 0, working: 0 }
+    row.active++
+    if (c.isWaiting) row.waiting++
+    if (c.isNew) row.new++
+    if (c.isRunning) row.working++
+    rows.set(area, row)
+  }
+  const order = [...cfg.areas.map(a => a.id), '']
+  return order.map(id => rows.get(id)).filter((r): r is WeekRow => !!r)
+}
+
+// Chats to propose for the archive: unused for longer than `staleDays`, not running, not waiting,
+// not the current chat, no steering chat, not already in the archive or the runs area. Oldest first.
+export function cleanupCandidates(cfg: Config, chats: Chat[], selfId: string, now: number): Chat[] {
+  return chats
+    .filter(c => {
+      if (c.id === selfId || c.isRunning || c.isWaiting) return false
+      const p = parse(c.title)
+      if (p && isSteering(p.num)) return false
+      if (isSpecialArea(cfg, areaOf(cfg, c))) return false
+      return daysSince(c.last, now) > cfg.settings.staleDays
+    })
+    .sort((a, b) => a.last.localeCompare(b.last))
 }
 
 // ---------- Status bar ----------

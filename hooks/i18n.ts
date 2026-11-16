@@ -53,6 +53,27 @@ const en = {
   openExit: (code: number) => `«open» reported error ${code}`,
   copied: (num: string) => `Number ${num} copied. Use it as the start of the new chat's title.`,
 
+  // Search, weekly review, cleanup
+  searchPlaceholder: 'Search chats by title or number',
+  searchSubmit: 'search',
+  results: (n: number) => (n === 1 ? '1 result' : `${n} results`),
+  noResults: 'No chat matches.',
+  week: 'Week',
+  weekTitle: 'Last 7 days',
+  weekRow: (r: { active: number; waiting: number; new: number; working: number }) =>
+    [`${r.active} active`, r.waiting > 0 ? `${r.waiting} waiting` : '', r.new > 0 ? `${r.new} new` : '', r.working > 0 ? `${r.working} working` : '']
+      .filter(Boolean)
+      .join(' · '),
+  weekOther: 'Without area',
+  weekEmpty: 'Nothing happened in the last 7 days.',
+  cleanup: (n: number) => `Clean up ${n}`,
+  cleanupTitle: (n: number, days: number) => `${n} ${n === 1 ? 'chat' : 'chats'} unused for more than ${days} days`,
+  cleanupButton: (n: number) => `Move ${n} to the archive`,
+  cleanupHint: 'They move to the navigator\'s archive area; in the app they stay as they are.',
+  cleanupDone: (n: number) => `${n} ${n === 1 ? 'chat' : 'chats'} moved to the archive.`,
+  archiveArea: 'Archive',
+  runsArea: 'Scheduled runs',
+
   // Line above the prompt
   bandWaiting: 'Waiting:',
   bandNew: 'New:',
@@ -182,6 +203,26 @@ const de: Texts = {
   noLink: title => `kein App-Link für «${title}»`,
   openExit: code => `«open» meldet Fehler ${code}`,
   copied: num => `Nummer ${num} kopiert. Als Titelanfang für den neuen Chat verwenden.`,
+
+  searchPlaceholder: 'Chats nach Titel oder Nummer suchen',
+  searchSubmit: 'suchen',
+  results: n => (n === 1 ? '1 Treffer' : `${n} Treffer`),
+  noResults: 'Kein Chat passt.',
+  week: 'Woche',
+  weekTitle: 'Letzte 7 Tage',
+  weekRow: r =>
+    [`${r.active} aktiv`, r.waiting > 0 ? `${r.waiting} wartet` : '', r.new > 0 ? `${r.new} neu` : '', r.working > 0 ? `${r.working} arbeiten` : '']
+      .filter(Boolean)
+      .join(' · '),
+  weekOther: 'Ohne Bereich',
+  weekEmpty: 'In den letzten 7 Tagen ist nichts passiert.',
+  cleanup: n => `${n} aufräumen`,
+  cleanupTitle: (n, days) => `${n} ${n === 1 ? 'Chat' : 'Chats'} seit über ${days} Tagen unbenutzt`,
+  cleanupButton: n => `${n} in die Ablage`,
+  cleanupHint: 'Sie wandern in die Ablage des Navigators; in der App bleiben sie, wie sie sind.',
+  cleanupDone: n => `${n} ${n === 1 ? 'Chat' : 'Chats'} in die Ablage gelegt.`,
+  archiveArea: 'Ablage',
+  runsArea: 'Automatische Läufe',
 
   bandWaiting: 'Wartet:',
   bandNew: 'Neu:',

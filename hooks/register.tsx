@@ -2,10 +2,10 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { Band, Global, Lang, Reason } from '../types'
 import { getSelf, listChats, listGroups, runActions } from './app'
-import { addToRegister, projectFor } from './config'
+import { addToArchive, addToRegister, projectFor } from './config'
 import type { Project } from './config'
 import { texts } from './i18n'
-import { areaOf, countOthers, crabFrame, failedFinding, isRun, normalizeGlobal, parse, planGuard, statusText } from './logic'
+import { areaOf, cleanupCandidates, countOthers, crabFrame, failedFinding, isRun, normalizeGlobal, parse, planGuard, statusText } from './logic'
 import { renderBand } from './band'
 import { renderPane } from './pane'
 import { PANE, getClosed, markStatus, publishBand, setBand, setNote, setOpen, setSnapshot, storeKey } from './state'
@@ -173,7 +173,7 @@ async function refresh($: EngineInterface, withGuard = true): Promise<void> {
     const { project: p, error } = await currentProject($)
     const lang = global.language
     if (!p) {
-      await setSnapshot($, s => ({ ...s, config: null, configError: error, lang, at: new Date().toISOString() }))
+      await setSnapshot($, s => ({ ...s, config: null, configError: error, lang, features: global.features, at: new Date().toISOString() }))
       return
     }
     const cfg = p.cfg
@@ -197,7 +197,7 @@ async function refresh($: EngineInterface, withGuard = true): Promise<void> {
 
     // Show the chats first; if the guard fails (e.g. sidebar service not connected), the list stays visible.
     lastFull = Date.now()
-    await setSnapshot($, s => ({ ...s, chats, selfId, config: cfg, configError: error, lang, at: new Date().toISOString(), error: '' }))
+    await setSnapshot($, s => ({ ...s, chats, selfId, config: cfg, configError: error, lang, features: global.features, at: new Date().toISOString(), error: '' }))
     try {
       const plan = planGuard(cfg, chats, await listGroups($), Date.now())
       // Number chats only when turned on, the chat list is complete, this chat surely has the pane
@@ -242,6 +242,19 @@ async function refresh($: EngineInterface, withGuard = true): Promise<void> {
       void refresh($, g)
     }
   }
+}
+
+// «Clean up»: put the given chats into the navigator's archive, then reload.
+// The list is checked again right before writing: a chat that became active or waiting meanwhile stays.
+async function archiveChats($: EngineInterface, ids: string[]): Promise<number> {
+  const p = (await currentProject($)).project
+  if (!p) return 0
+  const { chats, selfId: id } = await listChats($, p.cfg.project, p.others)
+  await markStatus($, p, chats, id)
+  const still = new Set(cleanupCandidates(p.cfg, chats, id, Date.now()).map(c => c.id))
+  const n = await addToArchive($, p, ids.filter(x => still.has(x)))
+  await refresh($, true)
+  return n
 }
 
 export const register: Register = on => {
@@ -294,6 +307,6 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => renderBand($, e, next, () => project))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) =>
-    renderPane($, e, { refresh: () => refresh($, true), project: () => project }),
+    renderPane($, e, { refresh: () => refresh($, true), project: () => project, archive: ids => archiveChats($, ids) }),
   )
 }

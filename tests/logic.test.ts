@@ -5,11 +5,13 @@ import { configErrorText, findingText, texts } from '../hooks/i18n'
 import {
   age,
   areaOf,
+  cleanupCandidates,
   crabFrame,
   endsWithQuestion,
   failedFinding,
   inProjectPath,
   isSteering,
+  matchesQuery,
   nextNumber,
   normalizeConfig,
   normalizeGlobal,
@@ -18,9 +20,11 @@ import {
   pickProject,
   planGuard,
   savedResultPath,
+  searchChats,
   statusText,
   toChats,
   updateSeen,
+  weekSummary,
   withPlannedTitles,
 } from '../hooks/logic'
 
@@ -155,6 +159,7 @@ test('normalizeGlobal: defaults, language, modes and project precedence', async 
     statusbar: true,
     crab: false,
     band: 'active',
+    features: { search: true, week: true, cleanup: true },
     settings: { staleDays: 14, recent: 10, pollMinutes: 1, waitingHours: 48, autoFix: true },
   })
   const g = normalizeGlobal({ language: 'de', statusbar: false, crab: true, band: 'always', settings: { recent: 5, staleDays: 30 } })
@@ -400,4 +405,64 @@ test('settings errors read well in English and German', async () => {
 test('band aliases accept only real mode names', async () => {
   expect(normalizeGlobal({ band: 'constructor' }).band).toBe('active')
   expect(normalizeGlobal({ band: 'offen' }).band).toBe('active')
+})
+
+// ---------- Search, weekly review, cleanup ----------
+
+test('features can be switched off one by one', async () => {
+  expect(normalizeGlobal({ features: { week: false } }).features).toEqual({ search: true, week: false, cleanup: true })
+  expect(normalizeGlobal({ features: 'off' }).features).toEqual({ search: true, week: true, cleanup: true })
+})
+
+test('matchesQuery: words in the title, number prefixes', async () => {
+  const c = { title: '01-02-03 · Raised beds for tomatoes' }
+  expect(matchesQuery(c, '')).toBe(true)
+  expect(matchesQuery(c, 'TOMATO')).toBe(true)
+  expect(matchesQuery(c, 'raised tomato')).toBe(true)
+  expect(matchesQuery(c, 'raised potato')).toBe(false)
+  expect(matchesQuery(c, '01-02')).toBe(true)
+  expect(matchesQuery(c, '01-03')).toBe(false)
+})
+
+test('searchChats sorts by last activity and limits', async () => {
+  const chats = [chat('a', 'Bed one', { last: ago(3) }), chat('b', 'Bed two', { last: ago(1) }), chat('c', 'Other')]
+  expect(searchChats(chats, 'bed').map(c => c.id)).toEqual(['b', 'a'])
+})
+
+test('weekSummary counts activity per area in the last 7 days', async () => {
+  const chats = [
+    chat('a', '01-01-01 · A', { last: ago(1), isWaiting: true }),
+    chat('b', '01-01-02 · B', { last: ago(10) }),
+    chat('c', '02-01 · C', { last: ago(2), isRunning: true }),
+    chat('d', 'Loose', { last: ago(3), isNew: true }),
+    chat('e', '02-02 · E', { last: ago(30), isNew: true }),
+  ]
+  expect(weekSummary(config(), chats, NOW)).toEqual([
+    { area: '01', name: 'Planning', active: 1, waiting: 1, new: 0, working: 0 },
+    { area: '02', name: 'Harvest', active: 1, waiting: 0, new: 0, working: 1 },
+    { area: '', name: '', active: 1, waiting: 0, new: 1, working: 0 },
+  ])
+  expect(weekSummary(config(), [chat('x', '01-01 · X', { last: ago(30) })], NOW)).toEqual([])
+})
+
+test('cleanupCandidates: stale chats only, oldest first', async () => {
+  const cfg = config({ ablage: ['arch'], runs: { patterns: ['Nightly'] } })
+  const chats = [
+    chat('a', '01-01-01 · Old', { last: ago(20) }),
+    chat('b', 'Older loose', { last: ago(40) }),
+    chat('fresh', '01-01-02 · Fresh', { last: ago(2) }),
+    chat('steer', '01-00 · Steering', { last: ago(50) }),
+    chat('arch', 'Archived', { last: ago(50) }),
+    chat('run', 'Nightly 4', { last: ago(50) }),
+    chat('wait', '01-01-03 · Waits', { last: ago(30), isWaiting: true }),
+    chat('me', '01-01-04 · Me', { last: ago(30) }),
+  ]
+  expect(cleanupCandidates(cfg, chats, 'me', NOW).map(c => c.id)).toEqual(['b', 'a'])
+})
+
+test('the archive beats the number, and archived chats are not reported in the wrong group', async () => {
+  const cfg = config({ archive: { sessions: ['a'] } })
+  const c = chat('a', '02-01 · Done', { group: '01 Planning' })
+  expect(areaOf(cfg, c)).toBe('99')
+  expect(planGuard(cfg, [c], GROUPS, NOW).findings).toEqual([])
 })

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+
+- Search: filters all chats by title or number while you type.
+- Week: what happened in each area during the last 7 days.
+- Clean up: moves chats unused for long to the navigator's archive area with one click.
+- `features` in `config.json` switches search, week and clean up off one by one.
+- The archive list now beats the number in the title, so archived numbered chats leave the tree.
+
 ## 0.5.0
 
 - User interface in English and German, switchable with `language` in `config.json` (default: English).

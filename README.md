@@ -11,6 +11,10 @@ project as a numbered tree in a pane next to the chat and keeps the order tidy.
 - **This chat:** the current chat is highlighted and its area expanded.
 - **Recently active:** the last 10 chats, with their state: working, waiting for you, new.
 - **To clarify:** chats without a number, in the wrong sidebar group, with a duplicate number or unused for long.
+- **Search:** filters all chats by title or number while you type.
+- **Week:** what happened in each area during the last 7 days: active, waiting, new, working.
+- **Clean up:** lists chats unused for long and moves them to the navigator's archive area with one click
+  (in the app they stay as they are).
 - **Automatic numbering:** a chat started from a numbered chat gets the next free number. If a chat is in the
   wrong sidebar group, «To clarify» says where it belongs; moving it is up to you (the app does not let a
   plugin move other chats without asking).
@@ -69,6 +73,7 @@ Example: [examples/config.json](examples/config.json).
 | `statusbar` | `true` | Status bar entry on or off (coloured marks: 🟠 waiting, 🔵 new, 🟢 working). |
 | `crab` | `false` | While another chat waits for you, the status bar shows only `🦀 2` (number of waiting chats) and the crab runs back and forth. |
 | `band` | `"active"` | Line above the prompt: `"off"`, `"active"` (only while something waits, is new or works) or `"always"`. |
+| `features` | all `true` | Parts of the pane: `search`, `week`, `cleanup`. Set one to `false` to hide it. |
 | `settings` | see below | Defaults for all projects; a project file overrides them one by one. |
 
 ### Project files
@@ -82,7 +87,7 @@ One file per project in `~/.claude/chat-navigator/<name>.json`. Example:
 | `areas` | yes | Areas with `id` (two digits), `name`, `subs` (sub-folders, `id` like `01-02`) and optionally `group`: the exact name of the sidebar group for this area. |
 | `name` | no | Heading in the pane. |
 | `register` | no | Planned or assigned numbers: `"01-02-03": { "session": "<id>", "title": "<old title>" }`. The navigator updates it automatically. |
-| `archive` | no | Archive: `area` (default `99`) and `sessions` (ids of chats without a number that belong there). |
+| `archive` | no | Archive: `area` (default `99`) and `sessions` (ids of chats that belong there, numbered or not). «Clean up» adds to it; remove an id to bring the chat back. |
 | `runs` | no | Scheduled runs: `area` (default `90`) and `patterns` (text found in their titles). |
 | `settings` | no | `staleDays` (14), `recent` (10), `pollMinutes` (1), `waitingHours` (48), `autoFix` (`true`: assign numbers automatically; `false`: only report). |
 

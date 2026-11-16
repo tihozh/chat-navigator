@@ -11,6 +11,10 @@ eines Projekts als nummerierten Baum in einem Panel neben dem Chat und hält die
 - **Dieser Chat:** der aktuelle Chat ist hervorgehoben, sein Bereich aufgeklappt.
 - **Zuletzt bearbeitet:** die letzten 10 Chats, mit Status: arbeitet, wartet auf dich, neu.
 - **Zu klären:** Chats ohne Nummer, im falschen Seitenleisten-Ordner, mit doppelter Nummer oder lange unbenutzt.
+- **Suche:** filtert beim Tippen alle Chats nach Titel oder Nummer.
+- **Woche:** was in den letzten 7 Tagen je Bereich lief: aktiv, wartet, neu, arbeitet.
+- **Aufräumen:** listet lange unbenutzte Chats und legt sie mit einem Klick in die Ablage des Navigators
+  (in der App bleiben sie, wie sie sind).
 - **Nummeriert selbst:** Ein Chat, der aus einem nummerierten Chat gestartet wurde, erbt die nächste freie
   Nummer. Liegt ein Chat im falschen Seitenleisten-Ordner, sagt «Zu klären», wohin er gehört; verschieben
   tust du ihn selbst (die App lässt ein Plugin andere Chats nicht ohne Rückfrage verschieben).
@@ -71,6 +75,7 @@ Beispiel: [examples/config.json](examples/config.json).
 | `statusbar` | `true` | Eintrag in der Statusleiste an oder aus (farbige Zeichen: 🟠 wartet, 🔵 neu, 🟢 arbeitet). |
 | `crab` | `false` | Solange ein anderer Chat auf dich wartet, steht unten nur `🦀 2` (Zahl der Wartenden), und der Krebs läuft hin und her. |
 | `band` | `"active"` | Zeile über dem Eingabefeld: `"off"`, `"active"` (nur wenn etwas wartet, neu ist oder arbeitet) oder `"always"`. Die früheren Werte `"aus"`, `"offen"`, `"immer"` gelten weiter. |
+| `features` | alle `true` | Teile des Panels: `search`, `week`, `cleanup`. Auf `false` gesetzt, verschwindet der Teil. |
 | `settings` | siehe unten | Vorgaben für alle Projekte; eine Projektdatei überschreibt sie einzeln. |
 
 ### Projektdateien
@@ -84,7 +89,7 @@ Eine Datei je Projekt in `~/.claude/chat-navigator/<name>.json`. Beispiel:
 | `areas` | ja | Bereiche mit `id` (zwei Ziffern), `name`, `subs` (Unterordner, `id` wie `01-02`) und optional `group`: der genaue Name des Seitenleisten-Ordners für diesen Bereich. |
 | `name` | nein | Überschrift im Panel. |
 | `register` | nein | Geplante oder vergebene Nummern: `"01-02-03": { "session": "<id>", "title": "<alter Titel>" }`. Der Navigator ergänzt es selbst. |
-| `archive` | nein | Ablage: `area` (Standard `99`) und `sessions` (IDs von Chats ohne Nummer, die dorthin gehören). |
+| `archive` | nein | Ablage: `area` (Standard `99`) und `sessions` (IDs von Chats, die dorthin gehören, mit oder ohne Nummer). «Aufräumen» ergänzt sie; eine ID entfernen holt den Chat zurück. |
 | `runs` | nein | Automatische Läufe: `area` (Standard `90`) und `patterns` (Textstücke im Titel). |
 | `settings` | nein | `staleDays` (14), `recent` (10), `pollMinutes` (1), `waitingHours` (48), `autoFix` (`true`: Nummern selbst vergeben; `false`: nur melden). |
 
