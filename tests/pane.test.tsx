@@ -136,3 +136,16 @@ test('a review row opens its chats of the week', async ($, on) => {
   expect((await ui.findAll({ key: 'chat:o' })).length).toBeGreaterThan(0)
   await ui.unmount()
 })
+
+test('the review adapts to the pane width', async ($, on) => {
+  on('state.get', stateGet(snap('en'), '', ['__week']))
+  const bars = async (bodyColumns: number) => {
+    const ui = await $.ui.mount({ ...PANE, props: { ...PANE.props, bodyColumns }, surface: 'desktop' })
+    const found = (await ui.findAll({ type: 'Text', text: /█/ })).map(x => x.text)
+    await ui.unmount()
+    return found
+  }
+  expect(await bars(120)).toEqual(['████████████'])
+  expect(await bars(80)).toEqual(['██████'])
+  expect(await bars(60)).toEqual([])
+})

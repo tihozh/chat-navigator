@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1
+
+- Narrow panes: smaller text below 90 columns, shorter bars, no bars below 70; header buttons wrap; review rows keep their columns.
+
 ## 0.7.0
 
 - «Week» becomes «Review»: the areas worked on most this week, sorted, with bars; a click opens the area's chats of the week.

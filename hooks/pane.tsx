@@ -51,9 +51,22 @@ export async function renderPane(
   const features = snap.features ?? ALL_FEATURES
   const t = texts(lang)
   const now = Date.now()
-  // Narrow pane: compact list without borders and with little spacing.
-  const compact = (e.props.bodyColumns ?? 120) < 70
+  // Three widths: wide as it is; below 90 columns smaller text and shorter bars;
+  // below 70 a compact list without borders, little spacing and no bars.
+  const cols = e.props.bodyColumns ?? 120
+  const compact = cols < 70
+  const narrow = cols < 90
   const py = compact ? 0 : 1
+  const fs = narrow ? 'footnote' : 'body'
+  const fsMeta = narrow ? 'caption' : 'body'
+  const barWidth = compact ? 0 : narrow ? 6 : 12
+
+  // A pressable text whose size follows the width (a Button has no size of its own, its Text child has).
+  const link = (key: string, onPress: () => unknown, text: string) => (
+    <Button key={key} plain onPress={onPress}>
+      <Text size={fs}>{text}</Text>
+    </Button>
+  )
 
   const toggle = (key: string) => () => setOpen($, list => (list.includes(key) ? list.filter(k => k !== key) : [...list, key]))
 
@@ -85,7 +98,7 @@ export async function renderPane(
 
   const chip = (text: string, fg: string, bg: string) => (
     <Box backgroundColor={bg} paddingX={1}>
-      <Text color={fg} size="body">{text}</Text>
+      <Text color={fg} size={fsMeta}>{text}</Text>
     </Box>
   )
 
@@ -96,7 +109,7 @@ export async function renderPane(
         <Text weight="semibold" size="title">{t.appName}</Text>
         {snap.configError !== '' && <Text color="error">{snap.configError}</Text>}
         <Text>{t.noProject}</Text>
-        <Text color={C.gray} size="body">{t.setupHint}</Text>
+        <Text color={C.gray} size={fsMeta}>{t.setupHint}</Text>
         <Button key="refresh" plain onPress={deps.refresh} label={t.reload} />
       </Box>
     )
@@ -112,18 +125,18 @@ export async function renderPane(
     return (
       <Box key={`r:${c.id}:${indent}`} flexDirection="row" alignItems="center" paddingLeft={indent} paddingY={py} gap={1} backgroundColor={c.id === selfId ? C.cardOpen : undefined}>
         <Text color={dotColor}>{steer ? '◆ ' : '● '}</Text>
-        {showNum && p && <Text mono color={C.gray} size="body">{p.num}</Text>}
+        {showNum && p && <Text mono color={C.gray} size={fsMeta}>{p.num}</Text>}
         <Box flexGrow={1}>
-          <Button key={`chat:${c.id}`} plain onPress={openChat(c)} label={p ? p.rest : c.title} />
+          {link(`chat:${c.id}`, openChat(c), p ? p.rest : c.title)}
         </Box>
         {c.isRunning ? (
-          <Text color={C.green} size="body">{t.working}</Text>
+          <Text color={C.green} size={fsMeta}>{t.working}</Text>
         ) : c.isWaiting ? (
-          <Text color={C.amber} size="body">{t.waiting}  {age(c.last, now, lang)}</Text>
+          <Text color={C.amber} size={fsMeta}>{t.waiting}  {age(c.last, now, lang)}</Text>
         ) : c.isNew ? (
-          <Text color={C.blue} size="body">{t.isNew}  {age(c.last, now, lang)}</Text>
+          <Text color={C.blue} size={fsMeta}>{t.isNew}  {age(c.last, now, lang)}</Text>
         ) : (
-          <Text color={C.gray} size="body">{age(c.last, now, lang)}</Text>
+          <Text color={C.gray} size={fsMeta}>{age(c.last, now, lang)}</Text>
         )}
       </Box>
     )
@@ -179,12 +192,12 @@ export async function renderPane(
             <Text mono weight="semibold" color={isOpen ? C.blue : undefined}>{a.id}</Text>
           </Box>
           <Box flexGrow={1}>
-            <Button key={`area:${a.id}`} plain onPress={toggle(a.id)} label={a.name} />
+            {link(`area:${a.id}`, toggle(a.id), a.name)}
           </Box>
           {running > 0 && chip(t.countWorking(running), C.green, C.greenBg)}
           {waitingN > 0 && chip(t.countWaiting(waitingN), C.amber, C.amberBg)}
           {newN > 0 && chip(t.countNew(newN), C.blue, C.newBg)}
-          <Text color={C.gray} size="body">{compact ? list.length : t.chats(list.length)}</Text>
+          <Text color={C.gray} size={fsMeta}>{compact ? list.length : t.chats(list.length)}</Text>
           <Text color={C.gray}>{isOpen ? '⌄' : '›'}</Text>
         </Box>
         {isOpen && (
@@ -198,16 +211,16 @@ export async function renderPane(
                 <Box key={`s:${s.id}`} flexDirection="column">
                   <Box flexDirection="row" alignItems="center" gap={1} paddingY={py}>
                     {icon(subOpen ? 'open' : 'folder', subOpen ? C.blue : C.gray, 20)}
-                    <Text mono color={C.gray} size="body">{s.id}</Text>
+                    <Text mono color={C.gray} size={fsMeta}>{s.id}</Text>
                     <Box flexGrow={1}>
-                      <Button key={`sub:${s.id}`} plain onPress={toggle(s.id)} label={s.name} />
+                      {link(`sub:${s.id}`, toggle(s.id), s.name)}
                     </Box>
-                    <Text color={C.gray} size="body">{subChats.length}</Text>
-                    {subOpen && next !== '' && <Button key={`new:${s.id}`} plain onPress={copyNumber(next)} label={`+ ${next}`} />}
+                    <Text color={C.gray} size={fsMeta}>{subChats.length}</Text>
+                    {subOpen && next !== '' && link(`new:${s.id}`, copyNumber(next), `+ ${next}`)}
                   </Box>
                   {subOpen && (
                     <Box flexDirection="column" marginLeft={compact ? 2 : 4}>
-                      {subChats.length === 0 && <Text color={C.gray} size="body">{t.empty}</Text>}
+                      {subChats.length === 0 && <Text color={C.gray} size={fsMeta}>{t.empty}</Text>}
                       {subChats.map(c => chatRow(c, 1))}
                     </Box>
                   )}
@@ -225,23 +238,23 @@ export async function renderPane(
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1}>
-      <Box flexDirection="row" alignItems="center" marginBottom={1}>
+      <Box flexDirection="row" flexWrap="wrap" alignItems="center" rowGap={0} marginBottom={1}>
         <Box flexGrow={1}>
-          <Text weight="semibold" size={compact ? 'heading' : 'title'}>{cfg.name}</Text>
+          <Text weight="semibold" size={narrow ? 'heading' : 'title'}>{cfg.name}</Text>
         </Box>
         {features.week && (
           <Box marginRight={1}>
-            <Button key="week" plain onPress={toggle('__week')} label={t.week} />
+            {link('week', toggle('__week'), t.week)}
           </Box>
         )}
         {features.cleanup && (
           <Box marginRight={1}>
-            <Button key="cleanup" plain onPress={toggle('__cleanup')} label={candidates.length > 0 ? t.cleanup(candidates.length) : t.cleanupLabel} />
+            {link('cleanup', toggle('__cleanup'), candidates.length > 0 ? t.cleanup(candidates.length) : t.cleanupLabel)}
           </Box>
         )}
         {snap.findings.length > 0 && (
           <Box backgroundColor={C.amberBg} paddingX={1} marginRight={1}>
-            <Button key="findings" plain onPress={toggle('__findings')} label={t.toClarifyCount(snap.findings.length)} />
+            {link('findings', toggle('__findings'), t.toClarifyCount(snap.findings.length))}
           </Box>
         )}
         <Button key="refresh" plain onPress={deps.refresh} label="↻" />
@@ -249,7 +262,7 @@ export async function renderPane(
 
       {snap.error !== '' && <Text color="error">{snap.error}</Text>}
       {snap.configError !== '' && <Text color="error">{snap.configError}</Text>}
-      {hint !== '' && <Text color={C.gray} size="body">{hint}</Text>}
+      {hint !== '' && <Text color={C.gray} size={fsMeta}>{hint}</Text>}
 
       {features.search && (
         <Box marginBottom={1}>
@@ -261,9 +274,9 @@ export async function renderPane(
         <Box flexDirection="column" borderStyle="round" borderColor={C.blue} paddingX={1} marginBottom={1}>
           <Text weight="semibold" color={C.blue}>{t.weekTitle}</Text>
           {week.length === 0 ? (
-            <Text color={C.gray} size="body">{t.weekEmpty}</Text>
+            <Text color={C.gray} size={fsMeta}>{t.weekEmpty}</Text>
           ) : (
-            <Text color={C.gray} size="body">{t.weekTotal(week.reduce((n, r) => n + r.chats.length, 0), week.length)}</Text>
+            <Text color={C.gray} size={fsMeta}>{t.weekTotal(week.reduce((n, r) => n + r.chats.length, 0), week.length)}</Text>
           )}
           {week.map(r => {
             const key = `__week:${r.area || 'none'}`
@@ -273,14 +286,18 @@ export async function renderPane(
               <Box key={`w:${r.area || 'none'}`} flexDirection="column">
                 <Box flexDirection="row" alignItems="center" gap={1}>
                   <Box width={4}>
-                    <Text mono color={C.gray} size="body">{r.area || '··'}</Text>
+                    <Text mono color={C.gray} size={fsMeta}>{r.area || '··'}</Text>
                   </Box>
-                  <Box flexGrow={1}>
-                    <Button key={`wb:${r.area || 'none'}`} plain onPress={toggle(key)} label={r.area ? r.name : t.weekOther} />
+                  <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                    {link(`wb:${r.area || 'none'}`, toggle(key), r.area ? r.name : t.weekOther)}
                   </Box>
-                  <Text color={C.blue} size="body">{weekBar(r.chats.length, max)}</Text>
-                  <Box width={4}>
-                    <Text color={C.gray} size="body">{String(r.chats.length)}</Text>
+                  {barWidth > 0 && (
+                    <Box width={barWidth + 1} flexShrink={0}>
+                      <Text color={C.blue} size={fsMeta}>{weekBar(r.chats.length, max, barWidth)}</Text>
+                    </Box>
+                  )}
+                  <Box width={3} flexShrink={0}>
+                    <Text color={C.gray} size={fsMeta}>{String(r.chats.length)}</Text>
                   </Box>
                   <Text color={C.gray}>{isOpen ? '⌄' : '›'}</Text>
                 </Box>
@@ -297,7 +314,7 @@ export async function renderPane(
 
       {features.cleanup && expanded.includes('__cleanup') && candidates.length === 0 && (
         <Box borderStyle="round" borderColor={C.gray} paddingX={1} marginBottom={1}>
-          <Text color={C.gray} size="body">{t.cleanupNothing(cfg.settings.staleDays)}</Text>
+          <Text color={C.gray} size={fsMeta}>{t.cleanupNothing(cfg.settings.staleDays)}</Text>
         </Box>
       )}
 
@@ -305,8 +322,8 @@ export async function renderPane(
         <Box flexDirection="column" borderStyle="round" borderColor={C.gray} paddingX={1} marginBottom={1}>
           <Text weight="semibold">{t.cleanupTitle(candidates.length, cfg.settings.staleDays)}</Text>
           {candidates.slice(0, 20).map(c => chatRow(c, 0))}
-          {candidates.length > 20 && <Text color={C.gray} size="body">{t.andMore(candidates.length - 20)}</Text>}
-          <Text color={C.gray} size="body">{t.cleanupHint}</Text>
+          {candidates.length > 20 && <Text color={C.gray} size={fsMeta}>{t.andMore(candidates.length - 20)}</Text>}
+          <Text color={C.gray} size={fsMeta}>{t.cleanupHint}</Text>
           <Box marginTop={1}>
             <Button key="cleanup-go" onPress={archiveAll} label={t.cleanupButton(candidates.length)} />
           </Box>
@@ -321,54 +338,54 @@ export async function renderPane(
             return (
               <Box key={`f:${i}`} flexDirection="row" gap={1}>
                 <Box width={16}>
-                  <Text color={C.gray} size="body">{t.findingLabel[f.kind]}</Text>
+                  <Text color={C.gray} size={fsMeta}>{t.findingLabel[f.kind]}</Text>
                 </Box>
-                {c ? <Button key={`fb:${i}`} plain onPress={openChat(c)} label={findingText(lang, f)} /> : <Text>{findingText(lang, f)}</Text>}
+                {c ? link(`fb:${i}`, openChat(c), findingText(lang, f)) : <Text size={fs}>{findingText(lang, f)}</Text>}
               </Box>
             )
           })}
-          {snap.findings.length > 30 && <Text color={C.gray} size="body">{t.andMore(snap.findings.length - 30)}</Text>}
-          {snap.fixed.length > 0 && <Text color={C.gray} size="body">{t.numbered(snap.fixed)}</Text>}
+          {snap.findings.length > 30 && <Text color={C.gray} size={fsMeta}>{t.andMore(snap.findings.length - 30)}</Text>}
+          {snap.fixed.length > 0 && <Text color={C.gray} size={fsMeta}>{t.numbered(snap.fixed)}</Text>}
         </Box>
       )}
 
       {planned > 0 && (
         <Box backgroundColor={C.amberBg} paddingX={1} marginBottom={1}>
-          <Text color={C.amber} size="body">{t.preview(planned)}</Text>
+          <Text color={C.amber} size={fsMeta}>{t.preview(planned)}</Text>
         </Box>
       )}
 
       {current && (
         <Box flexDirection="column" borderStyle="round" borderColor={C.blue} backgroundColor={C.cardOpen} paddingX={1} marginBottom={1}>
-          <Text color={C.blue} weight="semibold" size="body">{t.thisChat}</Text>
+          <Text color={C.blue} weight="semibold" size={fsMeta}>{t.thisChat}</Text>
           <Box flexDirection="row" gap={1} alignItems="center">
             {p && <Text mono weight="semibold">{p.num}</Text>}
             <Text weight="semibold">{p ? p.rest : current.title}</Text>
           </Box>
-          {current.group !== '' && <Text color={C.gray} size="body">{t.inGroup(current.group)}</Text>}
+          {current.group !== '' && <Text color={C.gray} size={fsMeta}>{t.inGroup(current.group)}</Text>}
         </Box>
       )}
 
       {results ? (
         <Box flexDirection="column" marginBottom={1}>
           <Box marginTop={py} marginBottom={py}>
-            <Text color={C.gray} weight="semibold" size="body">{t.results(results.length)}</Text>
+            <Text color={C.gray} weight="semibold" size={fsMeta}>{t.results(results.length)}</Text>
           </Box>
-          {results.length === 0 && <Text color={C.gray} size="body">{t.noResults}</Text>}
+          {results.length === 0 && <Text color={C.gray} size={fsMeta}>{t.noResults}</Text>}
           {results.slice(0, 50).map(c => chatRow(c, 0))}
-          {results.length > 50 && <Text color={C.gray} size="body">{t.andMore(results.length - 50)}</Text>}
+          {results.length > 50 && <Text color={C.gray} size={fsMeta}>{t.andMore(results.length - 50)}</Text>}
         </Box>
       ) : (
         <Box flexDirection="column">
         <Box marginTop={py} marginBottom={py}>
-          <Text color={C.gray} weight="semibold" size="body">{t.recent}</Text>
+          <Text color={C.gray} weight="semibold" size={fsMeta}>{t.recent}</Text>
         </Box>
         <Box flexDirection="column" marginBottom={1} marginTop={0}>
           {recent.map(c => chatRow(c, 0))}
         </Box>
 
         <Box marginTop={py} marginBottom={py}>
-          <Text color={C.gray} weight="semibold" size="body">{t.areas}</Text>
+          <Text color={C.gray} weight="semibold" size={fsMeta}>{t.areas}</Text>
         </Box>
         {areas.map(a => areaCard(a))}
 
@@ -376,7 +393,7 @@ export async function renderPane(
           <Box flexDirection="column" marginBottom={1}>
             <Box flexDirection="row" alignItems="center" borderStyle="round" borderColor={C.amber} paddingX={1} gap={1}>
               <Box flexGrow={1}>
-                <Button key="area:__none" plain onPress={toggle('__none')} label={t.noNumber} />
+                {link('area:__none', toggle('__none'), t.noNumber)}
               </Box>
               {chip(String(unplaced.length), C.amber, C.amberBg)}
             </Box>
@@ -391,12 +408,12 @@ export async function renderPane(
       )}
 
       <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={1}>
-        <Text color={C.green} size="body">● {t.working}</Text>
-        <Text color={C.amber} size="body">● {t.waitingForYou}</Text>
-        <Text color={C.blue} size="body">● {t.isNew}</Text>
-        <Text color={C.violet} size="body">◆ {t.steering}</Text>
-        <Text color={C.gray} size="body">● {t.nothingOpen}</Text>
-        <Text color={C.gray} size="body">
+        <Text color={C.green} size={fsMeta}>● {t.working}</Text>
+        <Text color={C.amber} size={fsMeta}>● {t.waitingForYou}</Text>
+        <Text color={C.blue} size={fsMeta}>● {t.isNew}</Text>
+        <Text color={C.violet} size={fsMeta}>◆ {t.steering}</Text>
+        <Text color={C.gray} size={fsMeta}>● {t.nothingOpen}</Text>
+        <Text color={C.gray} size={fsMeta}>
           {t.updated(snap.at ? new Date(snap.at).toLocaleTimeString(locale(lang), { hour: '2-digit', minute: '2-digit' }) : '–')}
         </Text>
       </Box>
