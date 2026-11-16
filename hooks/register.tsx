@@ -188,7 +188,7 @@ async function callJson($: EngineInterface, server: string, tool: string, args: 
 
 type Row = Record<string, unknown>
 
-async function getSelf($: EngineInterface): Promise<Row> {
+async function thisChat($: EngineInterface): Promise<Row> {
   return (await callJson($, 'ccd_session_mgmt', 'get_session', { session_id: 'self' })) as Row
 }
 
@@ -199,12 +199,12 @@ async function listChats(
   $: EngineInterface,
   project: string,
   others: string[],
-): Promise<{ chats: Chat[]; selfId: string; self: Row; complete: boolean }> {
+): Promise<{ chats: Chat[]; selfId: string; mine: Row; complete: boolean }> {
   const rows = (await callJson($, 'ccd_session_mgmt', 'list_sessions', { limit: MAX_SESSIONS })) as Row[]
-  const self = await getSelf($)
-  const selfId = String(self.sessionId ?? '')
-  const all = [...rows.filter(r => String(r.sessionId) !== selfId), self]
-  return { chats: toChats(all, project, others), selfId, self, complete: rows.length < MAX_SESSIONS }
+  const mine = await thisChat($)
+  const selfId = String(mine.sessionId ?? '')
+  const all = [...rows.filter(r => String(r.sessionId) !== selfId), mine]
+  return { chats: toChats(all, project, others), selfId, mine, complete: rows.length < MAX_SESSIONS }
 }
 
 async function listGroups($: EngineInterface): Promise<Group[]> {
@@ -431,11 +431,11 @@ async function autoOpen($: EngineInterface) {
   if (checkTries === 0) await openIfWanted($)
   checkTries++
   try {
-    const self = await getSelf($)
-    selfId = String(self.sessionId ?? '')
+    const mine = await thisChat($)
+    selfId = String(mine.sessionId ?? '')
     if (selfId === '') return
-    selfTitle = String(self.title ?? '')
-    const isRunChat = Boolean(self.scheduledTaskId) || isRun(p.cfg, selfTitle)
+    selfTitle = String(mine.title ?? '')
+    const isRunChat = Boolean(mine.scheduledTaskId) || isRun(p.cfg, selfTitle)
     wantPane = !isRunChat && !(await getClosed($)).includes(selfId)
     if (!wantPane && (await $.ui.panes()).some(x => x.id === PANE)) await $.ui.close({ id: PANE })
   } catch {
@@ -478,7 +478,8 @@ async function tick($: EngineInterface) {
   // Reload the current chat's title: it may have changed, even while another chat keeps the band fresh.
   if (global.statusbar) {
     try {
-      selfTitle = String((await getSelf($)).title ?? selfTitle)
+      const info = await thisChat($)
+      selfTitle = String(info.title ?? selfTitle)
     } catch {
       // App service not connected yet: keep the old title.
     }

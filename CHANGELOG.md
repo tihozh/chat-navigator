@@ -1,11 +1,16 @@
 # Changelog
 
+## 0.9.1
+
+- For the plugin directory: the call that reads the current chat has a plainer name; the icon is stored
+  smaller and without metadata.
+
 ## 0.9.0
 
 - Ready for the plugin directory: everything that works with the app is in `hooks/register.tsx`; the pane and
   the line above the prompt only draw. No change in what you see.
 - README: new section on what the plugin does on your computer (app services, programs, files, hooks).
-- Icon: `.claude-plugin/icon.png`.
+- New icon.
 
 ## 0.8.4
 
