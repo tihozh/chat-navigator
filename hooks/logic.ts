@@ -513,12 +513,12 @@ export function cleanupCandidates(cfg: Config, chats: Chat[], selfId: string, no
 
 // ---------- Pane width ----------
 
-// Three stages of the pane, by its width in columns: standard as designed; small with smaller text,
-// shorter bars and tighter spacing; mini with only a dot and the title per chat, icons in the header,
-// no bars and no legend.
+// Three stages of the pane, by its width in columns: standard as designed; small with shorter bars and
+// tighter spacing; mini with dot, title and time per chat (the dot colour shows the state), icons in the
+// header, no bars and no legend.
 export type PaneSize = 'standard' | 'small' | 'mini'
-export const SMALL_BELOW = 60
-export const MINI_BELOW = 40
+export const SMALL_BELOW = 50
+export const MINI_BELOW = 32
 // The text gets smaller well before the layout changes, so titles do not wrap.
 export const SMALL_TEXT_BELOW = 115
 export function paneSize(cols: number): PaneSize {

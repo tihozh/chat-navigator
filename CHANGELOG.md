@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.4
+
+- Times stay visible in the mini pane too; small below 50 columns, mini below 32.
+
 ## 0.8.3
 
 - Times, states and counts never wrap; the title in front is cut instead. Smaller text from 115 columns down.

@@ -25,7 +25,7 @@ eines Projekts als nummerierten Baum in einem Panel neben dem Chat und hält die
   geschlossen hast. Mehrere Projekte gehen nebeneinander, jedes mit eigener Einstellungsdatei.
 - Oberfläche auf Englisch oder Deutsch.
 - Passt sich der Breite des Panels in drei Stufen an: Standard, klein (kleinere Schrift, kürzere Balken) und
-  mini (Punkt und Titel je Chat, Zeichen statt Wörter im Kopf).
+  mini (Punkt, Titel und Zeit je Chat, Zeichen statt Wörter im Kopf).
 
 ![Statusleiste mit dem laufenden Krebs](docs/statusbar.svg)
 

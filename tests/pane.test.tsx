@@ -147,17 +147,17 @@ test('the review adapts to the pane width', async ($, on) => {
   }
   expect(await bars(120)).toEqual(['████████████'])
   expect(await bars(80)).toEqual(['████████████'])
-  expect(await bars(50)).toEqual(['██████'])
-  expect(await bars(35)).toEqual([])
+  expect(await bars(40)).toEqual(['██████'])
+  expect(await bars(30)).toEqual([])
 })
 
-test('mini: dot and title only, icons in the header, no legend', async ($, on) => {
+test('mini: dot, title and time, icons in the header, no legend', async ($, on) => {
   on('state.get', stateGet(snap('en')))
   const ui = await $.ui.mount({ ...PANE, props: { ...PANE.props, bodyColumns: 30 }, surface: 'desktop' })
   expect((await ui.find({ key: 'week' }))?.text).toBe('📊')
   expect((await ui.find({ key: 'cleanup' }))?.text).toBe('🧹 1')
   expect(await ui.find({ key: 'chat:o' })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: '● waiting for you' })).toBe(undefined)
-  expect(await ui.find({ type: 'Text', text: /^\d+ h$/ })).toBe(undefined)
+  expect(await ui.find({ type: 'Text', text: /^\d+ h$/ })).toBeTruthy()
   await ui.unmount()
 })

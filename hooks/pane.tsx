@@ -132,8 +132,15 @@ export async function renderPane(
         <Box flexGrow={1} flexShrink={1} minWidth={0}>
           {link(`chat:${c.id}`, openChat(c), p ? p.rest : c.title)}
         </Box>
-        {/* Time and state never wrap and never shrink: the title in front of them is cut instead. */}
-        {!mini && (
+        {/* Time and state never wrap and never shrink: the title in front of them is cut instead.
+            In mini the dot colour shows the state, so only the time stays. */}
+        {mini ? (
+          <Box flexShrink={0}>
+            <Text color={c.isRunning ? C.green : c.isWaiting ? C.amber : c.isNew ? C.blue : C.gray} size={fsMeta} wrap="truncate-end">
+              {c.isRunning ? '…' : age(c.last, now, lang)}
+            </Text>
+          </Box>
+        ) : (
           <Box flexShrink={0}>
             {c.isRunning ? (
               <Text color={C.green} size={fsMeta} wrap="truncate-end">{t.working}</Text>

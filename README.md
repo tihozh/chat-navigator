@@ -24,8 +24,8 @@ project as a numbered tree in a pane next to the chat and keeps the order tidy.
 - Opens automatically in every chat of the project, not in scheduled runs and not where you closed it. Several
   projects work side by side, each with its own settings file.
 - English and German user interface.
-- Adapts to the pane width in three stages: standard, small (smaller text, shorter bars) and mini (dot and
-  title per chat, icons in the header).
+- Adapts to the pane width in three stages: standard, small (smaller text, shorter bars) and mini (dot, title
+  and time per chat, icons in the header).
 
 ![Status bar with the running crab](docs/statusbar.svg)
 
