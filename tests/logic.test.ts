@@ -478,8 +478,8 @@ test('the archive beats the number, and archived chats are not reported in the w
 
 test('paneSize: standard, small and mini by width', async () => {
   expect(paneSize(120)).toBe('standard')
-  expect(paneSize(90)).toBe('standard')
-  expect(paneSize(89)).toBe('small')
-  expect(paneSize(55)).toBe('small')
-  expect(paneSize(54)).toBe('mini')
+  expect(paneSize(60)).toBe('standard')
+  expect(paneSize(59)).toBe('small')
+  expect(paneSize(40)).toBe('small')
+  expect(paneSize(39)).toBe('mini')
 })

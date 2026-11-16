@@ -517,8 +517,8 @@ export function cleanupCandidates(cfg: Config, chats: Chat[], selfId: string, no
 // shorter bars and tighter spacing; mini with only a dot and the title per chat, icons in the header,
 // no bars and no legend.
 export type PaneSize = 'standard' | 'small' | 'mini'
-export const SMALL_BELOW = 90
-export const MINI_BELOW = 55
+export const SMALL_BELOW = 60
+export const MINI_BELOW = 40
 export function paneSize(cols: number): PaneSize {
   return cols < MINI_BELOW ? 'mini' : cols < SMALL_BELOW ? 'small' : 'standard'
 }
