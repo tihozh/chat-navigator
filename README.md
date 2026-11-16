@@ -5,6 +5,8 @@
 A plugin for the **Claude desktop app** (Code tab) for projects with many chats. It shows all chats of a
 project as a numbered tree in a pane next to the chat and keeps the order tidy.
 
+![Chat Navigator pane next to a chat](docs/pane.svg)
+
 - **Tree:** areas (`01`), sub-folders (`01-02`) and chats (`01-02-03 · Title`); steering chats `NN-00`.
 - **This chat:** the current chat is highlighted and its area expanded.
 - **Recently active:** the last 10 chats, with their state: working, waiting for you, new.
@@ -18,6 +20,8 @@ project as a numbered tree in a pane next to the chat and keeps the order tidy.
 - Opens automatically in every chat of the project, not in scheduled runs and not where you closed it. Several
   projects work side by side, each with its own settings file.
 - English and German user interface.
+
+![Status bar with the running crab](docs/statusbar.svg)
 
 ## Installation
 

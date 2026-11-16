@@ -5,6 +5,8 @@
 Ein Plugin für die **Claude Desktop-App** (Code-Tab), wenn ein Projekt viele Chats hat. Es zeigt alle Chats
 eines Projekts als nummerierten Baum in einem Panel neben dem Chat und hält die Ordnung selbst sauber.
 
+![Panel des Chat-Navigators neben einem Chat](docs/pane.svg)
+
 - **Baum:** Bereiche (`01`), Unterordner (`01-02`) und Chats (`01-02-03 · Titel`); Steuerchats `NN-00`.
 - **Dieser Chat:** der aktuelle Chat ist hervorgehoben, sein Bereich aufgeklappt.
 - **Zuletzt bearbeitet:** die letzten 10 Chats, mit Status: arbeitet, wartet auf dich, neu.
@@ -18,6 +20,8 @@ eines Projekts als nummerierten Baum in einem Panel neben dem Chat und hält die
 - Öffnet sich in jedem Chat des Projekts von selbst, nicht in geplanten Läufen und nicht dort, wo du es
   geschlossen hast. Mehrere Projekte gehen nebeneinander, jedes mit eigener Einstellungsdatei.
 - Oberfläche auf Englisch oder Deutsch.
+
+![Statusleiste mit dem laufenden Krebs](docs/statusbar.svg)
 
 ## Installation
 

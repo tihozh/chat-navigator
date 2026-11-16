@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-label="Chat Navigator pane next to a chat">
+  <style>
+    .bg { fill: #ffffff; }
+    .frame { fill: #f6f6f4; stroke: #dcdcd8; }
+    .panebg { fill: #ffffff; stroke: #dcdcd8; }
+    .ink { fill: #1f1f1d; }
+    .muted { fill: #888780; }
+    .line { stroke: #e3e3df; }
+    .bubble { fill: #ececea; }
+    .bar { fill: #dcdcd8; }
+    .card { fill: rgba(128,128,128,0.08); }
+    .prompt { fill: #ffffff; stroke: #d6d6d2; }
+    .band { fill: #ededeb; }
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1e1e1c; }
+      .frame { fill: #262624; stroke: #3a3a37; }
+      .panebg { fill: #1e1e1c; stroke: #3a3a37; }
+      .ink { fill: #ececea; }
+      .muted { fill: #9c9b95; }
+      .line { stroke: #3a3a37; }
+      .bubble { fill: #30302d; }
+      .bar { fill: #3a3a37; }
+      .card { fill: rgba(128,128,128,0.14); }
+      .prompt { fill: #262624; stroke: #45453f; }
+      .band { fill: #2c2c29; }
+    }
+  </style>
+
+  <!-- Window -->
+  <rect class="bg" x="0" y="0" width="960" height="640" rx="14"/>
+  <rect class="frame" x="0.5" y="0.5" width="959" height="639" rx="14"/>
+
+  <!-- Chat side (placeholder conversation) -->
+  <text class="ink" x="28" y="38" font-size="14" font-weight="600">01-01-02 · Raised beds</text>
+  <line class="line" x1="16" y1="56" x2="556" y2="56"/>
+  <rect class="bubble" x="300" y="80" width="236" height="40" rx="12"/>
+  <rect class="bar" x="316" y="94" width="180" height="10" rx="5"/>
+  <rect class="bar" x="36" y="146" width="420" height="10" rx="5"/>
+  <rect class="bar" x="36" y="166" width="460" height="10" rx="5"/>
+  <rect class="bar" x="36" y="186" width="380" height="10" rx="5"/>
+  <rect class="bar" x="36" y="216" width="300" height="10" rx="5"/>
+  <rect class="bubble" x="260" y="250" width="276" height="40" rx="12"/>
+  <rect class="bar" x="276" y="264" width="210" height="10" rx="5"/>
+  <rect class="bar" x="36" y="316" width="440" height="10" rx="5"/>
+  <rect class="bar" x="36" y="336" width="400" height="10" rx="5"/>
+  <rect class="bar" x="36" y="356" width="250" height="10" rx="5"/>
+
+  <!-- Line above the prompt -->
+  <rect class="band" x="24" y="470" width="516" height="40" rx="10"/>
+  <text x="40" y="495" font-size="13" fill="#EF9F27">Waiting:</text>
+  <circle cx="108" cy="490" r="4.5" fill="#EF9F27"/>
+  <text class="ink" x="118" y="495" font-size="13">02-01-01</text>
+  <text x="190" y="495" font-size="13" fill="#378ADD">New:</text>
+  <circle cx="232" cy="490" r="4.5" fill="#378ADD"/>
+  <text class="ink" x="242" y="495" font-size="13">01-02-01</text>
+  <circle cx="316" cy="490" r="4.5" fill="#378ADD"/>
+  <text class="ink" x="326" y="495" font-size="13">01-01-01</text>
+  <text x="408" y="495" font-size="13" fill="#1D9E75">1 working</text>
+
+  <!-- Prompt box -->
+  <rect class="prompt" x="24" y="520" width="516" height="52" rx="12"/>
+  <text class="muted" x="44" y="551" font-size="14">Type / for commands</text>
+
+  <!-- Status bar -->
+  <text class="muted" x="40" y="604" font-size="12">chat-navigator</text>
+  <text class="ink" x="134" y="604" font-size="12">01-01-02</text>
+  <text class="muted" x="194" y="604" font-size="12">·</text>
+  <circle cx="208" cy="600" r="5" fill="#EF9F27"/>
+  <text class="ink" x="217" y="604" font-size="12">1 waiting</text>
+  <text class="muted" x="275" y="604" font-size="12">·</text>
+  <circle cx="289" cy="600" r="5" fill="#378ADD"/>
+  <text class="ink" x="298" y="604" font-size="12">2 new</text>
+  <text class="muted" x="334" y="604" font-size="12">·</text>
+  <circle cx="348" cy="600" r="5" fill="#1D9E75"/>
+  <text class="ink" x="357" y="604" font-size="12">1 working</text>
+
+  <!-- Pane -->
+  <rect class="panebg" x="572" y="12" width="376" height="616" rx="12"/>
+  <text class="ink" x="592" y="40" font-size="14">Chat Navigator</text>
+  <text class="muted" x="900" y="41" font-size="14">⤢</text>
+  <text class="muted" x="922" y="41" font-size="15">✕</text>
+  <line class="line" x1="572" y1="56" x2="948" y2="56"/>
+
+  <!-- Header -->
+  <text class="ink" x="592" y="88" font-size="18" font-weight="600">Garden</text>
+  <rect x="804" y="70" width="98" height="26" rx="6" fill="rgba(239,159,39,0.18)"/>
+  <text class="ink" x="853" y="88" font-size="13" text-anchor="middle">2 to clarify</text>
+  <text class="ink" x="916" y="89" font-size="16">↻</text>
+
+  <!-- This chat -->
+  <rect x="592" y="106" width="336" height="68" rx="9" fill="rgba(55,138,221,0.10)" stroke="#378ADD"/>
+  <text x="604" y="125" font-size="12" font-weight="600" fill="#378ADD">This chat</text>
+  <text class="ink mono" x="604" y="145" font-size="13" font-weight="600">01-01-02</text>
+  <text class="ink" x="676" y="145" font-size="13" font-weight="600">Raised beds</text>
+  <text class="muted" x="604" y="163" font-size="12">Folder: Garden · 01 Planning</text>
+
+  <!-- Recently active -->
+  <text class="muted" x="592" y="198" font-size="12" font-weight="600">Recently active</text>
+  <rect x="592" y="206" width="336" height="24" rx="4" fill="rgba(55,138,221,0.10)"/>
+  <circle cx="600" cy="218" r="4.5" fill="#888780"/>
+  <text class="muted mono" x="612" y="222" font-size="12">01-01-02</text>
+  <text class="ink" x="680" y="222" font-size="13">Raised beds</text>
+  <text class="muted" x="926" y="222" font-size="12" text-anchor="end">now</text>
+
+  <circle cx="600" cy="242" r="4.5" fill="#1D9E75"/>
+  <text class="muted mono" x="612" y="246" font-size="12">02-01-02</text>
+  <text class="ink" x="680" y="246" font-size="13">Harvest log</text>
+  <text x="926" y="246" font-size="12" text-anchor="end" fill="#1D9E75">working</text>
+
+  <circle cx="600" cy="266" r="4.5" fill="#EF9F27"/>
+  <text class="muted mono" x="612" y="270" font-size="12">02-01-01</text>
+  <text class="ink" x="680" y="270" font-size="13">Storage plan</text>
+  <text x="926" y="270" font-size="12" text-anchor="end" fill="#EF9F27">waiting  12 min</text>
+
+  <circle cx="600" cy="290" r="4.5" fill="#378ADD"/>
+  <text class="muted mono" x="612" y="294" font-size="12">01-02-01</text>
+  <text class="ink" x="680" y="294" font-size="13">Tool list</text>
+  <text x="926" y="294" font-size="12" text-anchor="end" fill="#378ADD">new  1 h</text>
+
+  <circle cx="600" cy="314" r="4.5" fill="#378ADD"/>
+  <text class="muted mono" x="612" y="318" font-size="12">01-01-01</text>
+  <text class="ink" x="680" y="318" font-size="13">Tomatoes</text>
+  <text x="926" y="318" font-size="12" text-anchor="end" fill="#378ADD">new  2 h</text>
+
+  <!-- Areas -->
+  <text class="muted" x="592" y="350" font-size="12" font-weight="600">Areas</text>
+
+  <rect x="592" y="360" width="336" height="36" rx="9" fill="rgba(55,138,221,0.10)" stroke="#378ADD"/>
+  <rect x="604" y="368" width="28" height="20" rx="4" fill="rgba(55,138,221,0.22)"/>
+  <text class="mono" x="618" y="383" font-size="12" font-weight="600" text-anchor="middle" fill="#378ADD">01</text>
+  <text class="ink" x="644" y="383" font-size="13">Planning</text>
+  <rect x="806" y="369" width="50" height="18" rx="4" fill="rgba(55,138,221,0.18)"/>
+  <text x="831" y="382" font-size="11" text-anchor="middle" fill="#378ADD">2 new</text>
+  <text class="muted" x="864" y="382" font-size="12">4 chats</text>
+  <text class="muted" x="916" y="380" font-size="12">⌄</text>
+
+  <text x="614" y="420" font-size="12" fill="#7F77DD">◆</text>
+  <text class="muted mono" x="630" y="420" font-size="12">01-00</text>
+  <text class="ink" x="676" y="420" font-size="13">Planning</text>
+  <text class="muted" x="926" y="420" font-size="12" text-anchor="end">3 d</text>
+
+  <path transform="translate(0 6)" d="M614 434v-7a1.4 1.4 0 0 1 1.4-1.4h2.8l1.4 1.4h4.9a1.4 1.4 0 0 1 1.4 1.4v.7" fill="none" stroke="#378ADD" stroke-width="1.2"/>
+  <path transform="translate(0 6)" d="M614 434l1.8-4.3a1 1 0 0 1 1-.6h9.8l-2.1 5a1 1 0 0 1-1 .6h-8.4a1 1 0 0 1-1.1-.7z" fill="rgba(55,138,221,0.35)" stroke="#378ADD" stroke-width="1.2"/>
+  <text class="muted mono" x="634" y="444" font-size="12">01-01</text>
+  <text class="ink" x="680" y="444" font-size="13">Beds</text>
+  <text class="muted" x="842" y="444" font-size="12">2</text>
+  <text class="ink" x="926" y="444" font-size="12" text-anchor="end">+ 01-01-03</text>
+
+  <circle cx="644" cy="464" r="4.5" fill="#378ADD"/>
+  <text class="muted mono" x="656" y="468" font-size="12">01-01-01</text>
+  <text class="ink" x="722" y="468" font-size="13">Tomatoes</text>
+  <text x="926" y="468" font-size="12" text-anchor="end" fill="#378ADD">new  2 h</text>
+
+  <rect x="632" y="476" width="296" height="22" rx="4" fill="rgba(55,138,221,0.10)"/>
+  <circle cx="644" cy="487" r="4.5" fill="#888780"/>
+  <text class="muted mono" x="656" y="491" font-size="12">01-01-02</text>
+  <text class="ink" x="722" y="491" font-size="13">Raised beds</text>
+  <text class="muted" x="926" y="491" font-size="12" text-anchor="end">now</text>
+
+  <path transform="translate(0 1)" d="M614 509a1.4 1.4 0 0 1 1.4-1.4h2.8l1.4 1.4h5.6a1.4 1.4 0 0 1 1.4 1.4v5.6a1.4 1.4 0 0 1-1.4 1.4h-9.8a1.4 1.4 0 0 1-1.4-1.4z" fill="rgba(136,135,128,0.25)" stroke="#888780" stroke-width="1.2"/>
+  <text class="muted mono" x="634" y="518" font-size="12">01-02</text>
+  <text class="ink" x="680" y="518" font-size="13">Tools</text>
+  <text class="muted" x="842" y="518" font-size="12">1</text>
+
+  <rect class="card" x="592" y="532" width="336" height="36" rx="9"/>
+  <rect x="604" y="540" width="28" height="20" rx="4" fill="rgba(128,128,128,0.16)"/>
+  <text class="ink mono" x="618" y="555" font-size="12" font-weight="600" text-anchor="middle">02</text>
+  <text class="ink" x="644" y="555" font-size="13">Harvest</text>
+  <rect x="738" y="541" width="64" height="18" rx="4" fill="rgba(29,158,117,0.18)"/>
+  <text x="770" y="554" font-size="11" text-anchor="middle" fill="#1D9E75">1 working</text>
+  <rect x="806" y="541" width="56" height="18" rx="4" fill="rgba(239,159,39,0.18)"/>
+  <text x="834" y="554" font-size="11" text-anchor="middle" fill="#EF9F27">1 waiting</text>
+  <text class="muted" x="868" y="554" font-size="12">2 chats</text>
+  <text class="muted" x="918" y="554" font-size="12">›</text>
+
+  <!-- Legend -->
+  <text x="592" y="598" font-size="11" fill="#1D9E75">● working</text>
+  <text x="656" y="598" font-size="11" fill="#EF9F27">● waiting for you</text>
+  <text x="756" y="598" font-size="11" fill="#378ADD">● new</text>
+  <text x="796" y="598" font-size="11" fill="#7F77DD">◆ Steering chat</text>
+  <text class="muted" x="592" y="616" font-size="11">● nothing open  · Updated 14:26</text>
+</svg>
