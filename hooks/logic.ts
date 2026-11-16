@@ -472,26 +472,29 @@ export function searchChats<T extends Pick<Chat, 'title' | 'last'>>(chats: T[], 
   return chats.filter(c => matchesQuery(c, query)).sort((a, b) => b.last.localeCompare(a.last))
 }
 
-// What happened in each area during the last 7 days: only chats active in that time count, and of those,
-// how many are waiting, new or working now. Areas without activity are left out;
-// chats outside the configured areas are collected under area ''.
+// Review: which areas were worked on most during the last 7 days. Each row holds the area's chats active in
+// that time, newest first; rows are sorted by the number of chats, most first, then by area order.
+// Chats outside the configured areas are collected under area ''.
 export const WEEK_DAYS = 7
 export function weekSummary(cfg: Config, chats: Chat[], now: number): WeekRow[] {
-  const rows = new Map<string, WeekRow>()
   const names = new Map(cfg.areas.map(a => [a.id, a.name]))
-  for (const c of chats) {
-    if (!(daysSince(c.last, now) <= WEEK_DAYS)) continue
+  const rows = new Map<string, WeekRow>()
+  const recent = chats.filter(c => daysSince(c.last, now) <= WEEK_DAYS).sort((x, y) => y.last.localeCompare(x.last))
+  for (const c of recent) {
     const id = areaOf(cfg, c)
     const area = names.has(id) ? id : ''
-    const row = rows.get(area) ?? { area, name: names.get(area) ?? '', active: 0, waiting: 0, new: 0, working: 0 }
-    row.active++
-    if (c.isWaiting) row.waiting++
-    if (c.isNew) row.new++
-    if (c.isRunning) row.working++
+    const row = rows.get(area) ?? { area, name: names.get(area) ?? '', chats: [] }
+    row.chats.push(c.id)
     rows.set(area, row)
   }
   const order = [...cfg.areas.map(a => a.id), '']
-  return order.map(id => rows.get(id)).filter((r): r is WeekRow => !!r)
+  return [...rows.values()].sort((x, y) => y.chats.length - x.chats.length || order.indexOf(x.area) - order.indexOf(y.area))
+}
+
+// A bar for the review: `n` out of `max`, at most `width` blocks, at least one for any n > 0.
+export function weekBar(n: number, max: number, width = 12): string {
+  if (n <= 0 || max <= 0) return ''
+  return '█'.repeat(Math.max(1, Math.round((n / max) * width)))
 }
 
 // Chats to propose for the archive: unused for longer than `staleDays`, not running, not waiting,

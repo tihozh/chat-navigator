@@ -58,14 +58,11 @@ const en = {
   searchSubmit: 'search',
   results: (n: number) => (n === 1 ? '1 result' : `${n} results`),
   noResults: 'No chat matches.',
-  week: 'Week',
-  weekTitle: 'Last 7 days',
-  weekRow: (r: { active: number; waiting: number; new: number; working: number }) =>
-    [`${r.active} active`, r.waiting > 0 ? `${r.waiting} waiting` : '', r.new > 0 ? `${r.new} new` : '', r.working > 0 ? `${r.working} working` : '']
-      .filter(Boolean)
-      .join(' · '),
+  week: 'Review',
+  weekTitle: 'Most worked on this week',
+  weekTotal: (chats: number, areas: number) => `${chats} ${chats === 1 ? 'chat' : 'chats'} in ${areas} ${areas === 1 ? 'area' : 'areas'}, last 7 days`,
   weekOther: 'Without area',
-  weekEmpty: 'Nothing happened in the last 7 days.',
+  weekEmpty: 'Nothing was worked on in the last 7 days.',
   cleanup: (n: number) => `Clean up ${n}`,
   cleanupLabel: 'Clean up',
   cleanupNothing: (days: number) => `Nothing to clean up: no chat unused for more than ${days} days.`,
@@ -210,14 +207,11 @@ const de: Texts = {
   searchSubmit: 'suchen',
   results: n => (n === 1 ? '1 Treffer' : `${n} Treffer`),
   noResults: 'Kein Chat passt.',
-  week: 'Woche',
-  weekTitle: 'Letzte 7 Tage',
-  weekRow: r =>
-    [`${r.active} aktiv`, r.waiting > 0 ? `${r.waiting} wartet` : '', r.new > 0 ? `${r.new} neu` : '', r.working > 0 ? `${r.working} arbeiten` : '']
-      .filter(Boolean)
-      .join(' · '),
+  week: 'Rückblick',
+  weekTitle: 'Am meisten bearbeitet diese Woche',
+  weekTotal: (chats, areas) => `${chats} ${chats === 1 ? 'Chat' : 'Chats'} in ${areas} ${areas === 1 ? 'Bereich' : 'Bereichen'}, letzte 7 Tage`,
   weekOther: 'Ohne Bereich',
-  weekEmpty: 'In den letzten 7 Tagen ist nichts passiert.',
+  weekEmpty: 'In den letzten 7 Tagen wurde nichts bearbeitet.',
   cleanup: n => `${n} aufräumen`,
   cleanupLabel: 'Aufräumen',
   cleanupNothing: days => `Nichts aufzuräumen: kein Chat seit über ${days} Tagen unbenutzt.`,

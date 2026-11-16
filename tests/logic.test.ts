@@ -24,6 +24,7 @@ import {
   statusText,
   toChats,
   updateSeen,
+  weekBar,
   weekSummary,
   withPlannedTitles,
 } from '../hooks/logic'
@@ -429,20 +430,27 @@ test('searchChats sorts by last activity and limits', async () => {
   expect(searchChats(chats, 'bed').map(c => c.id)).toEqual(['b', 'a'])
 })
 
-test('weekSummary counts activity per area in the last 7 days', async () => {
+test('weekSummary: areas worked on most this week, with their chats newest first', async () => {
   const chats = [
-    chat('a', '01-01-01 · A', { last: ago(1), isWaiting: true }),
+    chat('a', '01-01-01 · A', { last: ago(1) }),
     chat('b', '01-01-02 · B', { last: ago(10) }),
-    chat('c', '02-01 · C', { last: ago(2), isRunning: true }),
-    chat('d', 'Loose', { last: ago(3), isNew: true }),
-    chat('e', '02-02 · E', { last: ago(30), isNew: true }),
+    chat('c', '02-01 · C', { last: ago(2) }),
+    chat('c2', '02-02 · C2', { last: ago(0.5) }),
+    chat('d', 'Loose', { last: ago(3) }),
   ]
   expect(weekSummary(config(), chats, NOW)).toEqual([
-    { area: '01', name: 'Planning', active: 1, waiting: 1, new: 0, working: 0 },
-    { area: '02', name: 'Harvest', active: 1, waiting: 0, new: 0, working: 1 },
-    { area: '', name: '', active: 1, waiting: 0, new: 1, working: 0 },
+    { area: '02', name: 'Harvest', chats: ['c2', 'c'] },
+    { area: '01', name: 'Planning', chats: ['a'] },
+    { area: '', name: '', chats: ['d'] },
   ])
   expect(weekSummary(config(), [chat('x', '01-01 · X', { last: ago(30) })], NOW)).toEqual([])
+})
+
+test('weekBar scales to the busiest area', async () => {
+  expect(weekBar(17, 17)).toBe('████████████')
+  expect(weekBar(8, 17)).toBe('██████')
+  expect(weekBar(1, 17)).toBe('█')
+  expect(weekBar(0, 17)).toBe('')
 })
 
 test('cleanupCandidates: stale chats only, oldest first', async () => {

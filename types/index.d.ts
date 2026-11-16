@@ -64,8 +64,8 @@ export type Features = { search: boolean; week: boolean; cleanup: boolean }
 // `crab`: while another chat waits, a running crab replaces the status bar text.
 export type Global = { language: Lang; statusbar: boolean; crab: boolean; band: BandMode; features: Features; settings: Config['settings'] }
 
-// One line of the weekly review: an area and what happened in it during the last 7 days.
-export type WeekRow = { area: string; name: string; active: number; waiting: number; new: number; working: number }
+// One line of the weekly review: an area and its chats worked on during the last 7 days (newest first).
+export type WeekRow = { area: string; name: string; chats: string[] }
 
 // State of the pane. `config` is null while no project matches; `configError` says why.
 // `fixed` holds the new titles of chats that got a number in the last pass.

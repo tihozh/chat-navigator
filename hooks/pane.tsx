@@ -3,7 +3,7 @@ import type { EngineInterface, RenderElement, RenderInput } from 'claude-code'
 import type { Area, Chat } from '../types'
 import type { Project } from './config'
 import { findingText, locale, texts } from './i18n'
-import { ALL_FEATURES, age, areaOf, cleanupCandidates, isSteering, nextNumber, parse, searchChats, weekSummary, withPlannedTitles } from './logic'
+import { ALL_FEATURES, age, areaOf, cleanupCandidates, isSteering, nextNumber, parse, searchChats, weekBar, weekSummary, withPlannedTitles } from './logic'
 import { getNote, getOpen, getQuery, getSnapshot, markSeen, setNote, setOpen, setQuery } from './state'
 
 // The pane: this chat, recently active, areas with sub-folders, to clarify.
@@ -260,18 +260,38 @@ export async function renderPane(
       {week && (
         <Box flexDirection="column" borderStyle="round" borderColor={C.blue} paddingX={1} marginBottom={1}>
           <Text weight="semibold" color={C.blue}>{t.weekTitle}</Text>
-          {week.length === 0 && <Text color={C.gray} size="body">{t.weekEmpty}</Text>}
-          {week.map(r => (
-            <Box key={`w:${r.area || 'none'}`} flexDirection="row" gap={1}>
-              <Box width={4}>
-                <Text mono color={C.gray} size="body">{r.area || '··'}</Text>
+          {week.length === 0 ? (
+            <Text color={C.gray} size="body">{t.weekEmpty}</Text>
+          ) : (
+            <Text color={C.gray} size="body">{t.weekTotal(week.reduce((n, r) => n + r.chats.length, 0), week.length)}</Text>
+          )}
+          {week.map(r => {
+            const key = `__week:${r.area || 'none'}`
+            const isOpen = expanded.includes(key)
+            const max = week[0]?.chats.length ?? 0
+            return (
+              <Box key={`w:${r.area || 'none'}`} flexDirection="column">
+                <Box flexDirection="row" alignItems="center" gap={1}>
+                  <Box width={4}>
+                    <Text mono color={C.gray} size="body">{r.area || '··'}</Text>
+                  </Box>
+                  <Box flexGrow={1}>
+                    <Button key={`wb:${r.area || 'none'}`} plain onPress={toggle(key)} label={r.area ? r.name : t.weekOther} />
+                  </Box>
+                  <Text color={C.blue} size="body">{weekBar(r.chats.length, max)}</Text>
+                  <Box width={4}>
+                    <Text color={C.gray} size="body">{String(r.chats.length)}</Text>
+                  </Box>
+                  <Text color={C.gray}>{isOpen ? '⌄' : '›'}</Text>
+                </Box>
+                {isOpen && (
+                  <Box flexDirection="column" marginLeft={2}>
+                    {r.chats.map(id => chats.find(c => c.id === id)).filter((c): c is Chat => !!c).map(c => chatRow(c, 1))}
+                  </Box>
+                )}
               </Box>
-              <Box flexGrow={1}>
-                <Text size="body">{r.area ? r.name : t.weekOther}</Text>
-              </Box>
-              <Text color={C.gray} size="body">{t.weekRow(r)}</Text>
-            </Box>
-          ))}
+            )
+          })}
         </Box>
       )}
 

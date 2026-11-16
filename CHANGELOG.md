@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.0
+
+- «Week» becomes «Review»: the areas worked on most this week, sorted, with bars; a click opens the area's chats of the week.
+
 ## 0.6.1
 
 - «Clean up» is always visible; with nothing to do it says so.
