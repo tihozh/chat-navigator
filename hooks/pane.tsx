@@ -3,7 +3,7 @@ import type { EngineInterface, RenderElement, RenderInput } from 'claude-code'
 import type { Area, Chat } from '../types'
 import type { Project } from './config'
 import { findingText, locale, texts } from './i18n'
-import { ALL_FEATURES, age, areaOf, cleanupCandidates, isSteering, nextNumber, paneSize, parse, searchChats, weekBar, weekSummary, withPlannedTitles } from './logic'
+import { ALL_FEATURES, age, areaOf, SMALL_TEXT_BELOW, cleanupCandidates, isSteering, nextNumber, paneSize, parse, searchChats, weekBar, weekSummary, withPlannedTitles } from './logic'
 import { getNote, getOpen, getQuery, getSnapshot, markSeen, setNote, setOpen, setQuery } from './state'
 
 // The pane: this chat, recently active, areas with sub-folders, to clarify.
@@ -52,19 +52,22 @@ export async function renderPane(
   const t = texts(lang)
   const now = Date.now()
   // Three stages by width (see `paneSize`): standard, small, mini.
-  const size = paneSize(e.props.bodyColumns ?? 120)
+  const cols = e.props.bodyColumns ?? 120
+  const size = paneSize(cols)
   const mini = size === 'mini'
   const narrow = size !== 'standard'
   const compact = mini
   const py = narrow ? 0 : 1
-  const fs = narrow ? 'footnote' : 'body'
-  const fsMeta = narrow ? 'caption' : 'body'
+  const smallText = cols < SMALL_TEXT_BELOW
+  const fs = smallText ? 'footnote' : 'body'
+  const fsMeta = smallText ? 'caption' : 'body'
   const barWidth = mini ? 0 : narrow ? 6 : 12
 
   // A pressable text whose size follows the width (a Button has no size of its own, its Text child has).
+  // Titles never wrap: they are cut at the end with «…».
   const link = (key: string, onPress: () => unknown, text: string) => (
     <Button key={key} plain onPress={onPress}>
-      <Text size={fs}>{text}</Text>
+      <Text size={fs} wrap="truncate-end">{text}</Text>
     </Button>
   )
 
@@ -240,7 +243,7 @@ export async function renderPane(
     <Box flexDirection="column" paddingX={1} paddingY={1}>
       <Box flexDirection="row" flexWrap="wrap" alignItems="center" rowGap={0} marginBottom={1}>
         <Box flexGrow={1}>
-          <Text weight="semibold" size={narrow ? 'heading' : 'title'}>{cfg.name}</Text>
+          <Text weight="semibold" size={smallText ? 'heading' : 'title'} wrap="truncate-end">{cfg.name}</Text>
         </Box>
         {features.week && (
           <Box marginRight={1}>

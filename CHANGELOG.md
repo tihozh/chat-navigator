@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.2
+
+- Text gets smaller below 90 columns, before the layout changes; titles are cut with «…» instead of wrapping.
+
 ## 0.8.1
 
 - The pane switches later: small below 60 columns, mini below 40.
