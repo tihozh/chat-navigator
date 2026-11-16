@@ -99,6 +99,37 @@ Seitenleisten-Ordner gelten für alle Projekte gemeinsam. Ohne `group` erwartet 
 der mit der Bereichsnummer beginnt (z. B. `01 Planung`). Wer mehrere Projekte ordnet, gibt jedem Bereich
 mit `group` einen eigenen Ordner (z. B. `Garten · 01 Planung`).
 
+## Was das Plugin auf deinem Computer tut
+
+Der Navigator arbeitet nur lokal, in der Desktop-App. Er sendet nichts ins Internet und holt nichts von dort.
+
+- **App-Dienste, die er selbst aufruft** (ohne dass das Modell fragt), über die MCP-Server der App:
+  - `ccd_session_mgmt`: `list_sessions` und `get_session` (Chats und ihre Titel, jede Minute und beim Öffnen
+    des Panels), `list_events` (die letzten Beiträge eines kürzlich aktiven Chats, um zu sehen, ob er auf
+    dich wartet), `set_session_title` (setzt eine Nummer vor den Titel eines Chats, nur mit `autoFix` an).
+  - `ccd_sidebar`: `list_groups` (Seitenleisten-Ordner, um zu prüfen, ob ein Chat im Ordner seines Bereichs
+    liegt).
+  - Ist ein Dienst beim Start eines Chats noch nicht verbunden, verbindet er ihn (`mcp.connect`) und versucht
+    es nochmals.
+- **Programme, die er startet:** nur den macOS-Befehl `open` mit einem `claude://`-Link auf einen Chat, wenn
+  du im Panel oder in der Zeile über dem Eingabefeld auf einen Chat klickst. Links, die nicht mit `claude://`
+  beginnen, werden nicht geöffnet.
+- **Dateien, die er liest:** seine Einstellungen in `~/.claude/chat-navigator/` und, wenn ein App-Dienst eine
+  grosse Antwort als Datei ablegt, diese Datei im Ergebnisordner der App.
+- **Dateien, die er schreibt:** nur die Projektdateien in `~/.claude/chat-navigator/`: neue Nummern in
+  `register` und mit «Aufräumen» abgelegte Chats in `archive`. Andere Felder bleiben unverändert. Er schreibt
+  keine Build-, Start- oder Anweisungsdateien.
+- **Hooks:**
+  - `session.start`: liest die Einstellungen, meldet `/navigator` an und startet einen Minutentakt, der Baum,
+    Zeile über dem Eingabefeld und Statusleiste auffrischt.
+  - `session.attach`: Wechselst du in einen Chat, öffnet er dort das Panel oder lädt es neu.
+  - `ui.close`: merkt sich, wenn du das Panel selbst schliesst, und lässt es in diesem Chat zu. Den Aufruf
+    reicht er unverändert weiter.
+  - `command.run` (`/navigator`): öffnet das Panel wieder.
+  - `ui.render`: zeichnet das Panel und die Zeile über dem Eingabefeld; sonst ändert er nichts am Bildschirm.
+- **Gemeinsamer Speicher:** kleine Marken im Plugin-Speicher der App (welche Chats du gesehen hast, wo das
+  Panel geschlossen wurde, eine kurze Sperre, damit nur ein Chat aufs Mal nummeriert).
+
 ## Voraussetzungen und Grenzen
 
 - Nur in der Claude Desktop-App: Der Navigator braucht deren Dienste für Chats und Seitenleiste.

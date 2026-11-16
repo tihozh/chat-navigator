@@ -1,13 +1,23 @@
-import type { EngineInterface, RenderElement, RenderInput } from 'claude-code'
+import type { EngineInterface, RenderElement } from 'claude-code'
 
-import type { Area, Chat } from '../types'
-import type { Project } from './config'
+import type { Area, Chat, Snapshot } from '../types'
 import { findingText, locale, texts } from './i18n'
 import { ALL_FEATURES, age, areaOf, SMALL_TEXT_BELOW, cleanupCandidates, isSteering, nextNumber, paneSize, parse, searchChats, weekBar, weekSummary, withPlannedTitles } from './logic'
-import { getNote, getOpen, getQuery, getSnapshot, markSeen, setNote, setOpen, setQuery } from './state'
 
 // The pane: this chat, recently active, areas with sub-folders, to clarify.
-// Draws only; anything is written in the click handlers.
+// Draws only, from the values it is given; the click handlers come from register.tsx, which does all the
+// work with the app (the directory wants `$` to stay in one file).
+
+export type UI = ReturnType<EngineInterface['ui']['resolve']>
+export type PaneView = { snap: Snapshot; expanded: string[]; hint: string; rawQuery: string; columns: number }
+export type PaneActions = {
+  refresh: () => Promise<void>
+  toggle: (key: string) => () => Promise<void>
+  openChat: (chat: Chat) => () => Promise<void>
+  copyNumber: (num: string) => () => Promise<void>
+  setQuery: (text: string) => void
+  cleanUp: (ids: string[]) => () => Promise<void>
+}
 
 const svg = (body: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`
@@ -32,18 +42,10 @@ const C = {
   newBg: 'rgba(55,138,221,0.18)',
 }
 
-export async function renderPane(
-  $: EngineInterface,
-  e: RenderInput<'Pane'>,
-  deps: { refresh: () => Promise<void>; project: () => Project | null; archive: (ids: string[]) => Promise<number> },
-): Promise<RenderElement> {
-  const ui = $.ui.resolve(e)
+export function paneView(ui: UI, view: PaneView, act: PaneActions): RenderElement {
   const { Box, Text, Button, Input } = ui
   const Svg = 'Svg' in ui ? ui.Svg : null
-  const snap = await getSnapshot($)
-  const expanded = await getOpen($)
-  const hint = await getNote($)
-  const rawQuery = await getQuery($)
+  const { snap, expanded, hint, rawQuery } = view
   const query = rawQuery.trim()
   const cfg = snap.config
   const selfId = snap.selfId
@@ -52,7 +54,7 @@ export async function renderPane(
   const t = texts(lang)
   const now = Date.now()
   // Three stages by width (see `paneSize`): standard, small, mini.
-  const cols = e.props.bodyColumns ?? 120
+  const cols = view.columns
   const size = paneSize(cols)
   const mini = size === 'mini'
   const narrow = size !== 'standard'
@@ -71,30 +73,7 @@ export async function renderPane(
     </Button>
   )
 
-  const toggle = (key: string) => () => setOpen($, list => (list.includes(key) ? list.filter(k => k !== key) : [...list, key]))
-
-  const openChat = (chat: Chat) => async () => {
-    if (!chat.link.startsWith('claude://')) {
-      await setNote($, t.openFailed(t.noLink(chat.title)))
-      return
-    }
-    try {
-      const r = await $.process.run(['open', chat.link])
-      if (r.exitCode !== 0) {
-        await setNote($, t.openFailed(t.openExit(r.exitCode)))
-        return
-      }
-      await markSeen($, deps.project(), chat.id)
-      await setNote($, '')
-    } catch (err) {
-      await setNote($, t.openFailed((err instanceof Error ? err.message : String(err)).slice(0, 160)))
-    }
-  }
-
-  const copyNumber = (num: string) => async () => {
-    await $.ui.copy({ text: `${num} · `, surface: e.surface })
-    await setNote($, t.copied(num))
-  }
+  const { toggle, openChat, copyNumber } = act
 
   const icon = (kind: 'folder' | 'open', color: string, size = 16) =>
     Svg ? <Svg source={ICONS[kind](color)} alt={kind === 'open' ? t.folderOpen : t.folder} width={size} height={size} /> : <Text color={color}>{kind === 'open' ? '▾' : '▸'}</Text>
@@ -113,7 +92,7 @@ export async function renderPane(
         {snap.configError !== '' && <Text color="error">{snap.configError}</Text>}
         <Text>{t.noProject}</Text>
         <Text color={C.gray} size={fsMeta}>{t.setupHint}</Text>
-        <Button key="refresh" plain onPress={deps.refresh} label={t.reload} />
+        <Button key="refresh" plain onPress={act.refresh} label={t.reload} />
       </Box>
     )
   }
@@ -169,11 +148,7 @@ export async function renderPane(
   const candidates = features.cleanup ? cleanupCandidates(cfg, chats, selfId, now) : []
   const week = features.week && expanded.includes('__week') ? weekSummary(cfg, chats, now) : null
 
-  const archiveAll = async () => {
-    const n = await deps.archive(candidates.map(c => c.id))
-    await setOpen($, list => list.filter(k => k !== '__cleanup'))
-    await setNote($, t.cleanupDone(n))
-  }
+  const archiveAll = act.cleanUp(candidates.map(c => c.id))
   const inArea = (a: Area) => chats.filter(c => areaOf(cfg, c) === a.id)
   const unplaced = chats.filter(c => !areas.some(a => areaOf(cfg, c) === a.id))
 
@@ -274,7 +249,7 @@ export async function renderPane(
             {link('findings', toggle('__findings'), mini ? `⚠ ${snap.findings.length}` : t.toClarifyCount(snap.findings.length))}
           </Box>
         )}
-        <Button key="refresh" plain onPress={deps.refresh} label="↻" />
+        <Button key="refresh" plain onPress={act.refresh} label="↻" />
       </Box>
 
       {snap.error !== '' && <Text color="error">{snap.error}</Text>}
@@ -283,7 +258,7 @@ export async function renderPane(
 
       {features.search && (
         <Box marginBottom={1}>
-          <Input key="search" placeholder={mini ? t.searchShort : t.searchPlaceholder} submitLabel={t.searchSubmit} value={rawQuery} onInput={v => void setQuery($, v)} onSubmit={v => void setQuery($, v)} />
+          <Input key="search" placeholder={mini ? t.searchShort : t.searchPlaceholder} submitLabel={t.searchSubmit} value={rawQuery} onInput={act.setQuery} onSubmit={act.setQuery} />
         </Box>
       )}
 

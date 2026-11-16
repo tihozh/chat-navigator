@@ -97,6 +97,35 @@ Sidebar groups are shared by all projects. Without `group`, the navigator expect
 with the area number (e.g. `01 Planning`). If you organise several projects, give each area its own group with
 `group` (e.g. `Garden · 01 Planning`).
 
+## What the plugin does on your computer
+
+The navigator works only locally, inside the desktop app. It sends nothing to the internet and fetches nothing
+from it.
+
+- **App services it calls itself** (without the model asking), through the app's own MCP servers:
+  - `ccd_session_mgmt`: `list_sessions` and `get_session` (chats and their titles, every minute and when you
+    open the pane), `list_events` (the last few messages of a recently active chat, to tell whether it waits
+    for you), `set_session_title` (puts a number in front of a chat's title, only with `autoFix` on).
+  - `ccd_sidebar`: `list_groups` (sidebar groups, to check that a chat is in its area's group).
+  - If a service is not connected yet when a chat starts, it connects it (`mcp.connect`) and tries again.
+- **Programs it starts:** only the macOS command `open` with a `claude://` link to a chat, when you click a
+  chat in the pane or in the line above the prompt. Links that do not start with `claude://` are not opened.
+- **Files it reads:** its settings in `~/.claude/chat-navigator/` and, when an app service returns a large
+  answer as a file, that file in the app's own results folder.
+- **Files it writes:** only the project files in `~/.claude/chat-navigator/`: new numbers in `register` and
+  chats put away with «Clean up» in `archive`. Other keys stay as they are. It writes no build, start-up or
+  instruction files.
+- **Hooks:**
+  - `session.start`: reads the settings, registers `/navigator` and starts a one-minute timer that refreshes
+    the tree, the line above the prompt and the status bar.
+  - `session.attach`: when you switch to a chat, opens the pane there or reloads it.
+  - `ui.close`: notices when you close the pane yourself and keeps it closed in that chat. It passes the call
+    on unchanged.
+  - `command.run` (`/navigator`): opens the pane again.
+  - `ui.render`: draws the pane and the line above the prompt; it changes nothing else on screen.
+- **Shared store:** small markers in the app's plugin store (which chats you have seen, where the pane was
+  closed, a short lock so that only one chat assigns numbers at a time).
+
 ## Requirements and limits
 
 - Claude desktop app only: the navigator needs its services for chats and the sidebar.
@@ -124,11 +153,8 @@ places the API types in `.claude-plugin/types/`; then `tsc -p . --noEmit` checks
 | --- | --- |
 | [hooks/logic.ts](hooks/logic.ts) | Pure logic without app access: titles, numbers, guard, project matching, status text. Covered by [tests/](tests/). |
 | [hooks/i18n.ts](hooks/i18n.ts) | All visible texts in English and German. |
-| [hooks/register.tsx](hooks/register.tsx) | Wiring: events, timer, opening automatically, reloading. |
-| [hooks/config.ts](hooks/config.ts) | Finding and reading settings files, adding to the register. |
-| [hooks/app.ts](hooks/app.ts) | Calls to the desktop app's services. |
-| [hooks/state.ts](hooks/state.ts) | Pane state and per-project markers. |
-| [hooks/pane.tsx](hooks/pane.tsx), [hooks/band.tsx](hooks/band.tsx) | Pane and line above the prompt. |
+| [hooks/register.tsx](hooks/register.tsx) | Everything that works with the app: events, timer, opening automatically, reloading, settings files, app services, pane state. The plugin directory reads `$` only within one file, so this stays together. |
+| [hooks/pane.tsx](hooks/pane.tsx), [hooks/band.tsx](hooks/band.tsx) | Drawing the pane and the line above the prompt, from the values and click handlers they are given. |
 | [skills/setup/SKILL.md](skills/setup/SKILL.md) | Setup with `/chat-navigator:setup`. |
 
 ## License
