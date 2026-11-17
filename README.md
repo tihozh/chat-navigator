@@ -10,7 +10,7 @@ project as a numbered tree in a pane next to the chat and keeps the order tidy.
 - **Tree:** areas (`01`), sub-folders (`01-02`) and chats (`01-02-03 · Title`); steering chats `NN-00`.
 - **This chat:** the current chat is highlighted and its area expanded.
 - **Recently active:** the last 10 chats, with their state: working, waiting for you, new.
-- **To clarify:** chats without a number, in the wrong sidebar group, with a duplicate number or unused for long.
+- **To clarify:** chats without a number, in the wrong sidebar group, or with a duplicate number.
 - **Search:** filters all chats by title or number while you type.
 - **Review:** the areas you worked on most this week, with bars; a click shows that area's chats of the week.
 - **Clean up:** lists chats unused for long and moves them to the navigator's archive area with one click

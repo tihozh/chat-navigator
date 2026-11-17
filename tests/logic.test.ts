@@ -272,8 +272,7 @@ test('guard: duplicate numbers and chats unused for long', async () => {
   const kinds = planGuard(cfg, chats, GROUPS, NOW).findings.map(f => `${f.kind}:${f.chatId}`)
   expect(kinds).toContain('duplicate:b')
   expect(kinds).toContain('duplicateRegister:a')
-  expect(kinds).toContain('stale:a')
-  expect(kinds.includes('stale:s')).toBe(false)
+  expect(kinds.some(k => k.startsWith('stale'))).toBe(false)
 })
 
 // ---------- Texts in both languages ----------
@@ -285,7 +284,6 @@ test('findings read well in English and German', async () => {
   const held = failedFinding({ kind: 'rename', chatId: 'k', num: '01-01-04', title: '01-01-04 · K', original: 'K' }, { code: 'autoFixOff' })
   expect(findingText('en', held)).toBe('K (automatic numbering off)')
   expect(findingText('de', held)).toBe('K (Selbst-Nummerieren aus)')
-  expect(texts('de').findingLabel.stale).toBe('Lange unbenutzt')
 })
 
 test('every German text exists in English and the other way round', async () => {

@@ -46,7 +46,6 @@ export type Finding =
   | { kind: 'missingGroup' | 'unclearGroup' | 'wrongGroup'; chatId: string; title: string; group: string }
   | { kind: 'duplicate'; chatId: string; title: string; other: string }
   | { kind: 'duplicateRegister'; chatId: string; num: string }
-  | { kind: 'stale'; chatId: string; title: string; days: number }
 
 export type FindingKind = Finding['kind']
 

@@ -89,7 +89,6 @@ const en = {
     wrongGroup: 'Wrong folder',
     duplicate: 'Duplicate number',
     duplicateRegister: 'Duplicate number',
-    stale: 'Unused for long',
   } as Record<Finding['kind'], string>,
   findingText: (f: Finding, reason: (r: Reason) => string): string => {
     switch (f.kind) {
@@ -107,8 +106,6 @@ const en = {
         return `«${f.other}» and «${f.title}»`
       case 'duplicateRegister':
         return `${f.num} is already taken in the register`
-      case 'stale':
-        return `${f.title} (${f.days} days)`
     }
   },
   reason: (r: Reason): string => {
@@ -237,7 +234,6 @@ const de: Texts = {
     wrongGroup: 'Falscher Ordner',
     duplicate: 'Nummer doppelt',
     duplicateRegister: 'Nummer doppelt',
-    stale: 'Lange unbenutzt',
   },
   findingText: (f, reason) => {
     switch (f.kind) {
@@ -255,8 +251,6 @@ const de: Texts = {
         return `«${f.other}» und «${f.title}»`
       case 'duplicateRegister':
         return `${f.num} ist im Register schon vergeben`
-      case 'stale':
-        return `${f.title} (${f.days} Tage)`
     }
   },
   reason: r => {

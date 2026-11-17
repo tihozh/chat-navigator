@@ -302,15 +302,6 @@ export function planGuard(cfg: Config, chats: Chat[], groups: Group[], now: numb
     if (reg && reg.session !== c.id && byId.has(reg.session)) findings.push({ kind: 'duplicateRegister', chatId: c.id, num: p.num })
   }
 
-  // 4. Working chats nobody has used for a long time.
-  for (const c of chats) {
-    const t = title.get(c.id) ?? c.title
-    const p = parse(t)
-    if (!p || isSteering(p.num) || isSpecialArea(cfg, areaOf(cfg, c))) continue
-    const d = daysSince(c.last, now)
-    if (d > cfg.settings.staleDays) findings.push({ kind: 'stale', chatId: c.id, title: t, days: Math.floor(d) })
-  }
-
   return { findings, actions }
 }
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.4
+
+- «To clarify» no longer lists chats unused for long; they appear only under «Clean up».
+
 ## 0.9.3
 
 - Links for the plugin directory: documentation, support (issues) and privacy (README section).

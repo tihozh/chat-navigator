@@ -10,7 +10,7 @@ eines Projekts als nummerierten Baum in einem Panel neben dem Chat und hält die
 - **Baum:** Bereiche (`01`), Unterordner (`01-02`) und Chats (`01-02-03 · Titel`); Steuerchats `NN-00`.
 - **Dieser Chat:** der aktuelle Chat ist hervorgehoben, sein Bereich aufgeklappt.
 - **Zuletzt bearbeitet:** die letzten 10 Chats, mit Status: arbeitet, wartet auf dich, neu.
-- **Zu klären:** Chats ohne Nummer, im falschen Seitenleisten-Ordner, mit doppelter Nummer oder lange unbenutzt.
+- **Zu klären:** Chats ohne Nummer, im falschen Seitenleisten-Ordner oder mit doppelter Nummer.
 - **Suche:** filtert beim Tippen alle Chats nach Titel oder Nummer.
 - **Rückblick:** die Bereiche, an denen du diese Woche am meisten gearbeitet hast, mit Balken; ein Klick zeigt die Chats des Bereichs.
 - **Aufräumen:** listet lange unbenutzte Chats und legt sie mit einem Klick in die Ablage des Navigators
